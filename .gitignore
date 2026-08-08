@@ -1,0 +1,53 @@
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+.Spotlight-V100
+.Trashes
+
+# Editor / IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.cursor/
+
+# Claude Code local cache
+.claude/
+
+# Instruções privadas do Claude Code (não versionadas)
+CLAUDE.md
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+secrets.*
+
+# MCP local (contém token da API da Hostinger)
+.mcp.json
+
+# Node / monorepo
+node_modules/
+dist/
+build/
+.next/
+.turbo/
+*.tsbuildinfo
+coverage/
+
+# OS / temp
+Thumbs.db
+*.tmp
+*.bak
