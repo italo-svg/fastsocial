@@ -44,11 +44,25 @@ A boa notícia: **tudo o que é código, configuração e infraestrutura técnic
 > dedicada ao FastSocial (documentado em `infra/postiz/README.md`). Isso muda
 > **onde** `META_APP_ID`/`SECRET` e `LINKEDIN_CLIENT_ID`/`SECRET` são
 > configurados: em vez de env vars do FastSocial, eles entram na própria UI de
-> Configurações de Integração do Postiz existente. Além disso, precisamos de
-> mais um item novo:
-> - [ ] **API key do Postiz existente** — gerada por você em Configurações →
->   API dentro da sua conta Postiz já em uso (`https://volupia-postiz.bqvgyf.easypanel.host`).
->   Não consigo gerar isso sozinho por ser vinculado ao seu login pessoal.
+> Configurações de Integração do Postiz existente.
+>
+> **Atualização (spec 028, 2026-08-09):** o item "API key do Postiz existente"
+> acima **não é mais necessário** — como você autorizou acesso direto ao banco
+> do Postiz ("vc tem acesso ao meu postiz é só gerar vc"), o FastSocial agora
+> provisiona sozinho uma Organization isolada por workspace dentro do Postiz
+> compartilhado, cada uma com sua própria API key gerada automaticamente (ver
+> `apps/api/src/social-accounts/postiz-client.service.ts`). Você não precisa
+> gerar nada manualmente.
+>
+> **Lacuna em aberto (spec 028):** listar/sincronizar/desconectar contas já
+> conectadas no Postiz funciona de ponta a ponta, mas **iniciar uma conexão
+> OAuth NOVA** (conectar uma conta Meta pela primeira vez) ainda não tem
+> solução — a API pública do Postiz não expõe isso para uma organização
+> específica, só a UI logada dele expõe. Até resolvermos isso (ver nota da
+> Task 028 em `.specs/EXECUTAR-SPECS.md`), conectar a primeira conta de um
+> cliente nesse fluxo exige alguém com acesso ao Postiz agindo por trás — o
+> que ainda não cumpre o requisito de "cliente nunca vê o Postiz" para esse
+> caso específico.
 
 ### 1.3 Stripe (billing)
 - [ ] Criar conta em [stripe.com](https://stripe.com) com CNPJ da empresa.
