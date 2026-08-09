@@ -45,11 +45,12 @@ model Workspace {
 }
 
 model User {
-  id           String   @id @db.Uuid
-  email        String   @unique
-  name         String
-  authProvider String   @default("email") @map("auth_provider")
-  createdAt    DateTime @default(now()) @map("created_at")
+  id                   String   @id @db.Uuid
+  email                String   @unique
+  name                 String
+  authProvider         String   @default("email") @map("auth_provider")
+  isPlatformSuperAdmin Boolean  @default(false) @map("is_platform_super_admin")
+  createdAt            DateTime @default(now()) @map("created_at")
 
   memberships    WorkspaceMember[]
   createdContent ContentPiece[]        @relation("ContentCreatedBy")
