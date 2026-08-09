@@ -522,7 +522,7 @@ Após todas as tasks completarem:
 | 020 | pesquisa-tendencias-api | ✅ Concluído | 4 |
 | 021 | conector-pesquisa-fontes | ✅ Concluído* | 4 |
 | 022 | geracao-copy-claude | ✅ Concluído* | 4 |
-| 023 | diretor-de-cena | ⏳ Pendente | 4 |
+| 023 | diretor-de-cena | ✅ Concluído* | 4 |
 | 024 | pesquisa-frontend | ⏳ Pendente | 4 |
 | 025 | content-pieces-api | ⏳ Pendente | 5 |
 | 026 | fila-aprovacao-frontend | ⏳ Pendente | 5 |
@@ -570,3 +570,5 @@ Status: ⏳ Pendente | 🔄 Executando | ✅ Concluído | ❌ Erro
 \* Task 021: CA-02 (log real "nenhuma fonte habilitada") e CA-03 (gate `isEnabled()` do scraping testado diretamente — só ativa com a string exata `"true"`) confirmados ao vivo. CA-04/CA-05 (uma única chamada a Claude, scores sempre preenchidos) validados via testes unitários com mock (`insight-summarizer.service.spec.ts`). CA-01 depende de `META_ADS_LIBRARY_ACCESS_TOKEN` real — pendência nova, já adicionada a `.prd/checklist_acessos_e_delegacao.md` como item opcional.
 
 \* Task 022: CA-03 confirmado ao vivo (400 sem insightId/briefing). CA-01/CA-02/CA-04/CA-05 (estilo distinto por tom de voz, exatamente N slides, variação visivelmente diferente, robustez de parsing) dependem de `ANTHROPIC_API_KEY` real para gerar copy de verdade — mesma pendência dos Tasks 017/018/021. A escolha de usar tool-use (structured output) da Anthropic API em vez de JSON em texto livre já elimina estruturalmente a classe de falha que o CA-05 testa (parsing inconsistente), mas a validação empírica com 10 chamadas reais ainda depende da chave.
+
+\* Task 023: CA-01 (sem mencionar texto/palavras na cena), CA-02 (instrução de espaço negativo sempre correta, testado nas 5 posições) e CA-03 (nunca excede 3 frases mesmo com resposta do LLM mais longa) validados via testes unitários com mock (`scene-director.service.spec.ts`), incluindo o fallback determinístico. Regressão confirmada ao vivo: o pipeline do Task 017 (`POST /image-generation/jobs`) continua produzindo o `assembled_prompt` corretamente após a refatoração que extraiu este serviço. CA-04 (variabilidade entre 3 chamadas reais) depende de `ANTHROPIC_API_KEY` real — mesma pendência dos demais specs de IA.
