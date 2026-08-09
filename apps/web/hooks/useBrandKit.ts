@@ -20,8 +20,8 @@ export interface UpdateBrandKitInput {
   niche?: string;
   competitors?: string[];
   toneOfVoice?: string;
-  colorPalette?: Record<string, string>;
-  typography?: Record<string, string>;
+  colorPalette?: { primary: string; secondary: string; accent: string };
+  typography?: { fontFamily: string };
   defaultImageSource?: "own_library" | "stock" | "ai_generated";
 }
 
