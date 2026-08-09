@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
+import { BadRequestException, ConflictException, Injectable, NotFoundException } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { PrismaService } from "../prisma/prisma.service";
 import { StorageService } from "../common/services/storage.service";
@@ -6,6 +6,13 @@ import { CreateContentPieceDto } from "./dto/create-content-piece.dto";
 import { UpdateContentPieceDto } from "./dto/update-content-piece.dto";
 import { UpdateContentSlideDto } from "./dto/update-content-slide.dto";
 import { RenderContentPieceDto } from "./dto/render-content-piece.dto";
+import {
+  assertValidTransition,
+  InvalidTransitionError,
+  isEditable,
+  resolveSubmissionTarget,
+  type ContentPieceStatus,
+} from "./state-machine";
 
 const CONTENT_BUCKET = "content-renders";
 const DEFAULT_RENDER_ENGINE_URL = "http://fastsocial-render-engine:3334";
@@ -55,6 +62,41 @@ export class ContentPiecesService {
     return piece;
   }
 
+  list(workspaceId: string, status?: string) {
+    return this.prisma.contentPiece.findMany({
+      where: { workspaceId, ...(status ? { status } : {}) },
+      include: { slides: { orderBy: { slideOrder: "asc" } } },
+      orderBy: { updatedAt: "desc" },
+    });
+  }
+
+  // Regra de seguranca do PRD 7.7 (a mais critica do spec 025): qualquer slide
+  // image_source='ai_generated' NUNCA pula aprovacao humana, mesmo com
+  // autoApprove=true vindo do autopilot — resolveSubmissionTarget e' o unico lugar
+  // que decide isso, ver state-machine.ts.
+  async submitForApproval(workspaceId: string, id: string, autoApprove: boolean) {
+    const piece = await this.prisma.contentPiece.findFirst({
+      where: { id, workspaceId },
+      include: { slides: true },
+    });
+    if (!piece) throw new NotFoundException("Peça de conteúdo não encontrada.");
+
+    const hasAiGeneratedSlide = piece.slides.some((s) => s.imageSource === "ai_generated");
+    const targetStatus = resolveSubmissionTarget({ hasAiGeneratedSlide, autoApprove });
+
+    try {
+      assertValidTransition(piece.status as ContentPieceStatus, targetStatus);
+    } catch (err) {
+      if (err instanceof InvalidTransitionError) throw new ConflictException(err.message);
+      throw err;
+    }
+
+    return this.prisma.contentPiece.update({
+      where: { id },
+      data: { status: targetStatus },
+    });
+  }
+
   // Troca o template de uma peca ja criada SEM recriar os slides existentes — so'
   // adiciona slides a mais se o novo template exigir mais (nunca remove), para
   // preservar imagens/copy ja definidos (CA-04, spec 019: trocar template mantem
@@ -65,6 +107,7 @@ export class ContentPiecesService {
       include: { slides: true },
     });
     if (!piece) throw new NotFoundException("Peça de conteúdo não encontrada.");
+    this.assertEditable(piece.status);
 
     const template = await this.prisma.templateAsset.findFirst({
       where: { id: dto.templateId, deletedAt: null, OR: [{ isSystemTemplate: true }, { workspaceId }] },
@@ -91,7 +134,8 @@ export class ContentPiecesService {
   }
 
   async updateSlide(workspaceId: string, contentPieceId: string, slideId: string, dto: UpdateContentSlideDto) {
-    await this.assertOwnership(workspaceId, contentPieceId);
+    const piece = await this.assertOwnership(workspaceId, contentPieceId);
+    this.assertEditable(piece.status);
     const slide = await this.prisma.contentSlide.findFirst({ where: { id: slideId, contentPieceId } });
     if (!slide) throw new NotFoundException("Slide não encontrado.");
 
@@ -111,7 +155,8 @@ export class ContentPiecesService {
     slideId: string,
     file: Express.Multer.File,
   ) {
-    await this.assertOwnership(workspaceId, contentPieceId);
+    const piece = await this.assertOwnership(workspaceId, contentPieceId);
+    this.assertEditable(piece.status);
     const slide = await this.prisma.contentSlide.findFirst({ where: { id: slideId, contentPieceId } });
     if (!slide) throw new NotFoundException("Slide não encontrado.");
 
@@ -194,8 +239,18 @@ export class ContentPiecesService {
     return result;
   }
 
-  private async assertOwnership(workspaceId: string, contentPieceId: string): Promise<void> {
-    const exists = await this.prisma.contentPiece.findFirst({ where: { id: contentPieceId, workspaceId } });
-    if (!exists) throw new NotFoundException("Peça de conteúdo não encontrada.");
+  private async assertOwnership(workspaceId: string, contentPieceId: string) {
+    const piece = await this.prisma.contentPiece.findFirst({ where: { id: contentPieceId, workspaceId } });
+    if (!piece) throw new NotFoundException("Peça de conteúdo não encontrada.");
+    return piece;
+  }
+
+  // CA-06: editar copy/template/fonte de imagem so' e' permitido em draft/rejected —
+  // uma peca ja pending_approval/approved/scheduled/published nao pode ser alterada
+  // por baixo do fluxo de aprovacao/agendamento.
+  private assertEditable(status: string): void {
+    if (!isEditable(status as ContentPieceStatus)) {
+      throw new ConflictException(`Não é possível editar uma peça no status "${status}".`);
+    }
   }
 }
