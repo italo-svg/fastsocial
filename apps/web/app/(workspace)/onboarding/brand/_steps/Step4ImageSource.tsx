@@ -56,7 +56,7 @@ export function Step4ImageSource({
   return (
     <div className="space-y-5">
       <div>
-        <h2 className="text-lg font-semibold text-neutral-900">Fonte de imagem padrão</h2>
+        <h2 className="text-lg font-semibold">Fonte de imagem padrão</h2>
         <p className="mt-1 text-sm text-neutral-600">
           Como você quer que as imagens dos seus posts sejam definidas por padrão? Você pode mudar isso depois.
         </p>
@@ -72,7 +72,7 @@ export function Step4ImageSource({
             )}
             onClick={() => onChange(option.value)}
           >
-            <h3 className="font-semibold text-neutral-900">{option.title}</h3>
+            <h3 className="font-semibold">{option.title}</h3>
             <p className="mt-1 text-xs text-neutral-600">{option.description}</p>
           </Card>
         ))}

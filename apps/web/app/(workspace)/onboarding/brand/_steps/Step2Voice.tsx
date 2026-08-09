@@ -12,14 +12,14 @@ export function Step2Voice({ data, onChange }: Step2VoiceProps): JSX.Element {
   return (
     <div className="space-y-5">
       <div>
-        <h2 className="text-lg font-semibold text-neutral-900">Qual é o tom de voz da sua marca?</h2>
+        <h2 className="text-lg font-semibold">Qual é o tom de voz da sua marca?</h2>
         <p className="mt-1 text-sm text-neutral-600">
           Descreva como sua marca se comunica — a IA usará isso para escrever as legendas.
         </p>
       </div>
 
       <div className="space-y-1.5">
-        <label className="text-sm font-medium text-neutral-900">Tom de voz</label>
+        <label className="text-sm font-medium">Tom de voz</label>
         <textarea
           className="min-h-24 w-full rounded-lg border border-neutral-200 p-3 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
           placeholder="Ex: Direto, motivador, sem jargões técnicos, próximo do cliente."
@@ -29,7 +29,7 @@ export function Step2Voice({ data, onChange }: Step2VoiceProps): JSX.Element {
       </div>
 
       <div className="space-y-1.5">
-        <label className="text-sm font-medium text-neutral-900">
+        <label className="text-sm font-medium">
           Cole exemplos de textos já usados pela marca (opcional)
         </label>
         <textarea

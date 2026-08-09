@@ -33,14 +33,14 @@ export function Step1Niche({ data, onChange, error }: Step1NicheProps): JSX.Elem
   return (
     <div className="space-y-5">
       <div>
-        <h2 className="text-lg font-semibold text-neutral-900">Qual é o seu nicho?</h2>
+        <h2 className="text-lg font-semibold">Qual é o seu nicho?</h2>
         <p className="mt-1 text-sm text-neutral-600">
           Isso ajuda a IA a entender o contexto da sua marca ao gerar conteúdo.
         </p>
       </div>
 
       <div className="space-y-1.5">
-        <label className="text-sm font-medium text-neutral-900">Nicho</label>
+        <label className="text-sm font-medium">Nicho</label>
         <Input
           placeholder="Ex: Moda fitness feminina"
           value={data.niche}
@@ -50,7 +50,7 @@ export function Step1Niche({ data, onChange, error }: Step1NicheProps): JSX.Elem
       </div>
 
       <div className="space-y-1.5">
-        <label className="text-sm font-medium text-neutral-900">Concorrentes (opcional, até 5)</label>
+        <label className="text-sm font-medium">Concorrentes (opcional, até 5)</label>
         <div className="space-y-2">
           {data.competitors.map((competitor, index) => (
             <div key={index} className="flex gap-2">

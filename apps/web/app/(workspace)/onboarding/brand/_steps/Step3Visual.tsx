@@ -85,14 +85,14 @@ export function Step3Visual({
   return (
     <div className="space-y-5">
       <div>
-        <h2 className="text-lg font-semibold text-neutral-900">Logo e identidade visual</h2>
+        <h2 className="text-lg font-semibold">Logo e identidade visual</h2>
         <p className="mt-1 text-sm text-neutral-600">
           Envie sua logo — vamos sugerir uma paleta de cores automaticamente (você pode ajustar depois).
         </p>
       </div>
 
       <div className="space-y-1.5">
-        <label className="text-sm font-medium text-neutral-900">Logo</label>
+        <label className="text-sm font-medium">Logo</label>
         <div className="flex items-center gap-4">
           <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-lg border border-neutral-200 bg-neutral-50">
             {logoUrl ? (
@@ -126,7 +126,7 @@ export function Step3Visual({
       </div>
 
       <div className="space-y-1.5">
-        <label className="text-sm font-medium text-neutral-900">Paleta de cores</label>
+        <label className="text-sm font-medium">Paleta de cores</label>
         <div className="flex gap-4">
           {(["primary", "secondary", "accent"] as const).map((key) => (
             <div key={key} className="flex flex-col items-center gap-1">
@@ -146,7 +146,7 @@ export function Step3Visual({
       </div>
 
       <div className="space-y-1.5">
-        <label className="text-sm font-medium text-neutral-900">Tipografia</label>
+        <label className="text-sm font-medium">Tipografia</label>
         <select
           className="h-10 w-full rounded-lg border border-neutral-200 px-3 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
           value={fontFamily}
