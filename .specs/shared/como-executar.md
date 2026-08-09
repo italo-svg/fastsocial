@@ -74,9 +74,15 @@ META_APP_SECRET=
 LINKEDIN_CLIENT_ID=
 LINKEDIN_CLIENT_SECRET=
 
-# Postiz (self-hosted, já existente neste VPS)
-POSTIZ_API_URL=http://postiz:5000
-POSTIZ_API_KEY=
+# Postiz (self-hosted, já existente neste VPS — container real: volupia_postiz,
+# rede easypanel; API pública fica no backend Node na porta 3000, não na 5000
+# do nginx/frontend — confirmado na investigação do spec 027/028)
+POSTIZ_API_URL=http://volupia_postiz:3000
+# POSTIZ_DATABASE_URL: acesso direto ao Postgres do Postiz, usado só para
+# provisionar a Organization dedicada de cada workspace (a API pública do
+# Postiz não expõe criação de organização). A apiKey por workspace fica em
+# workspaces.postiz_api_key, não numa env var global.
+POSTIZ_DATABASE_URL=postgresql://postgres:<senha>@volupia_postiz-db:5432/volupia
 
 # n8n (self-hosted, já existente neste VPS)
 N8N_API_URL=http://n8n:5678

@@ -28,6 +28,11 @@ model Workspace {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
 
+  // API key da Organization dedicada deste workspace dentro do Postiz reusado
+  // (spec 027/028) — provisionada sob demanda no primeiro acesso a contas sociais,
+  // nao no momento da criacao do workspace. Null ate' entao.
+  postizApiKey String? @map("postiz_api_key")
+
   members           WorkspaceMember[]
   brandKit          BrandKit?
   templateAssets    TemplateAsset[]

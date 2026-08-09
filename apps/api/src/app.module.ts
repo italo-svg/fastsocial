@@ -12,6 +12,7 @@ import { ImageGenerationModule } from "./image-generation/image-generation.modul
 import { ContentPiecesModule } from "./content-pieces/content-pieces.module";
 import { ResearchModule } from "./research/research.module";
 import { CopyGenerationModule } from "./copy-generation/copy-generation.module";
+import { SocialAccountsModule } from "./social-accounts/social-accounts.module";
 
 // Módulos de negócio (specs 012 em diante) serão importados aqui conforme forem criados.
 @Module({
@@ -32,6 +33,7 @@ import { CopyGenerationModule } from "./copy-generation/copy-generation.module";
     ContentPiecesModule,
     ResearchModule,
     CopyGenerationModule,
+    SocialAccountsModule,
   ],
 })
 export class AppModule {}
