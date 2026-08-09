@@ -97,6 +97,32 @@ export class ContentPiecesService {
     });
   }
 
+  async approve(workspaceId: string, id: string) {
+    return this.transitionTo(workspaceId, id, "approved");
+  }
+
+  async reject(workspaceId: string, id: string, reason: string) {
+    await this.transitionTo(workspaceId, id, "rejected");
+    return this.prisma.contentPiece.update({
+      where: { id },
+      data: { rejectionReason: reason },
+    });
+  }
+
+  private async transitionTo(workspaceId: string, id: string, targetStatus: ContentPieceStatus) {
+    const piece = await this.prisma.contentPiece.findFirst({ where: { id, workspaceId } });
+    if (!piece) throw new NotFoundException("Peça de conteúdo não encontrada.");
+
+    try {
+      assertValidTransition(piece.status as ContentPieceStatus, targetStatus);
+    } catch (err) {
+      if (err instanceof InvalidTransitionError) throw new ConflictException(err.message);
+      throw err;
+    }
+
+    return this.prisma.contentPiece.update({ where: { id }, data: { status: targetStatus } });
+  }
+
   // Troca o template de uma peca ja criada SEM recriar os slides existentes — so'
   // adiciona slides a mais se o novo template exigir mais (nunca remove), para
   // preservar imagens/copy ja definidos (CA-04, spec 019: trocar template mantem
