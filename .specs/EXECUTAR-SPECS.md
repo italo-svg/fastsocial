@@ -504,7 +504,7 @@ Após todas as tasks completarem:
 | 002 | setup-docker-compose | ✅ Concluído | 0 |
 | 003 | schema-postgres-core | ✅ Concluído | 0 |
 | 004 | setup-nestjs-api | ✅ Concluído | 0 |
-| 005 | setup-nextjs-web | ⏳ Pendente | 0 |
+| 005 | setup-nextjs-web | ✅ Concluído | 0 |
 | 006 | auth-jwt-api | ⏳ Pendente | 1 |
 | 007 | multitenant-middleware | ⏳ Pendente | 1 |
 | 008 | auth-frontend | ⏳ Pendente | 1 |
