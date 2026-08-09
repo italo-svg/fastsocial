@@ -8,6 +8,7 @@ Este documento existe porque, até o spec `043` formalizar o deploy via `docker-
 |---|---|---|---|
 | `fastsocial-api-prod` | `fastsocial-api:dev` | `easypanel` + `supabase_default` | `https://api.fastsocial.volupia.cloud` |
 | `fastsocial-web-auth` | `fastsocial-web:dev` | `easypanel` | `https://app.fastsocial.volupia.cloud` |
+| `fastsocial-render-engine` | `fastsocial-render-engine:dev` | `easypanel` | Interno apenas (spec 015) — `127.0.0.1:3334` no servidor, sem rota pública no Traefik de propósito (nunca deve ser exposto). A API o alcança por nome de container na rede `easypanel` (`http://fastsocial-render-engine:3334`). |
 
 Roteamento em `/etc/easypanel/traefik/config/fastsocial.yaml` (arquivo próprio, não gerado pelo Easypanel — ver `infra/supabase/README.md` para a explicação de por que essa abordagem existe).
 
@@ -34,6 +35,13 @@ cd ../web && docker build \
   -t fastsocial-web:dev .
 docker rm -f fastsocial-web-auth
 docker run -d --name fastsocial-web-auth --network easypanel -p 127.0.0.1:3002:3000 fastsocial-web:dev
+
+# Render Engine (imagem grande, ~1.5GB — base mcr.microsoft.com/playwright ja traz Chromium)
+cd ../../services/render-engine && docker build -t fastsocial-render-engine:dev .
+docker rm -f fastsocial-render-engine
+docker run -d --name fastsocial-render-engine --network easypanel -p 127.0.0.1:3334:3334 \
+  -e SUPABASE_URL=... -e SUPABASE_SERVICE_ROLE_KEY=... \
+  fastsocial-render-engine:dev
 ```
 
 ## Lição de rede aprendida
