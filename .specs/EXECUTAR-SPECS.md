@@ -505,7 +505,7 @@ Após todas as tasks completarem:
 | 003 | schema-postgres-core | ✅ Concluído | 0 |
 | 004 | setup-nestjs-api | ✅ Concluído | 0 |
 | 005 | setup-nextjs-web | ✅ Concluído | 0 |
-| 006 | auth-jwt-api | ⏳ Pendente | 1 |
+| 006 | auth-jwt-api | ✅ Concluído | 1 |
 | 007 | multitenant-middleware | ⏳ Pendente | 1 |
 | 008 | auth-frontend | ⏳ Pendente | 1 |
 | 009 | workspace-provisioning | ⏳ Pendente | 1 |
