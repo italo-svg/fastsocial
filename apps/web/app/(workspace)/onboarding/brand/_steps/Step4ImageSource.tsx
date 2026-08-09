@@ -82,7 +82,7 @@ export function Step4ImageSource({
         <div className="space-y-3 rounded-lg border border-neutral-200 bg-neutral-50 p-4">
           <p className="text-sm text-neutral-600">
             Quanto mais imagens de referência da sua marca você enviar (produtos, ambientes, pessoas),
-            mais fiel a IA será ao gerar novas imagens — evitando o efeito de "imagem genérica de IA".
+            mais fiel a IA será ao gerar novas imagens — evitando o efeito de &ldquo;imagem genérica de IA&rdquo;.
             Recomendamos pelo menos 3.
           </p>
 
