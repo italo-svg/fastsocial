@@ -9,7 +9,7 @@ import { RenderContentPieceDto } from "./dto/render-content-piece.dto";
 const CONTENT_BUCKET = "content-renders";
 const DEFAULT_RENDER_ENGINE_URL = "http://fastsocial-render-engine:3334";
 
-interface RenderEngineResponse {
+export interface RenderEngineResponse {
   slides: { order: number; imageUrl: string }[];
   documentUrl?: string;
 }
