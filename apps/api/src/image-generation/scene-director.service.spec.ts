@@ -17,15 +17,19 @@ const BASE_INPUT = {
 };
 
 describe("SceneDirectorService", () => {
-  it("CA-01: scene brief não menciona texto/palavras a serem desenhadas na imagem", async () => {
+  it("CA-01: descrição da cena em si não menciona texto/palavras a serem desenhadas na imagem", async () => {
+    // A instrução de espaço negativo ("for text overlay") sempre menciona "text" —
+    // isso é sobre ONDE o overlay entra depois, não sobre desenhar texto NA cena.
+    // O CA-01 testa a parte criativa da descrição, por isso ela é isolada aqui.
+    const sceneDescription = "A focused entrepreneur organizes sticky notes on a clean desk, morning light.";
     const { service } = buildService(
-      "A focused entrepreneur organizes sticky notes on a clean desk, morning light. " +
-        "Composition leaves clear negative space in the bottom third for text overlay.",
+      `${sceneDescription} Composition leaves clear negative space in the bottom third for text overlay.`,
     );
 
     const result = await service.buildSceneBrief({ ...BASE_INPUT, textZonePosition: "bottom" });
+    const sceneOnly = result.replace(/Composition leaves clear negative space.*$/i, "");
 
-    expect(result.toLowerCase()).not.toMatch(/\btext\b|\bwords\b|\btypography\b/);
+    expect(sceneOnly.toLowerCase()).not.toMatch(/\btext\b|\bwords\b|\btypography\b/);
   });
 
   it.each<[TextZonePosition, string]>([
