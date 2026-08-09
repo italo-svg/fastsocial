@@ -1,25 +1,61 @@
 import { Injectable } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
-import { createClient, SupabaseClient } from "@supabase/supabase-js";
-import WebSocket from "ws";
 
-// Cliente com service_role — usado só para operacoes administrativas
-// (convite de usuario, gestao de buckets), nunca para validar sessao de usuario comum.
-// Nao usamos Realtime aqui, mas o supabase-js instancia o RealtimeClient internamente
-// mesmo assim; Node 20 nao tem WebSocket nativo, entao precisa do pacote "ws" explicito
-// (sem isso, createClient() lanca excecao na construcao — nao e opcional).
+// Cliente REST fino para a Admin API do GoTrue (Supabase Auth self-hospedado) —
+// usado só para operações administrativas (convite de usuário, exclusão de conta).
+// Deliberadamente NÃO usa o SDK @supabase/supabase-js completo aqui: a versão atual
+// instancia um RealtimeClient internamente mesmo sem uso, o que quebra em Node 20
+// por falta de WebSocket nativo (exigiria depender do pacote "ws" só por isso).
+// Um cliente REST direto evita essa dependência para um caso de uso puramente admin.
 @Injectable()
 export class SupabaseAdminService {
-  public readonly client: SupabaseClient;
+  private readonly baseUrl: string;
+  private readonly serviceRoleKey: string;
 
   constructor(config: ConfigService) {
-    this.client = createClient(
-      config.getOrThrow<string>("SUPABASE_URL"),
-      config.getOrThrow<string>("SUPABASE_SERVICE_ROLE_KEY"),
-      {
-        auth: { autoRefreshToken: false, persistSession: false },
-        realtime: { transport: WebSocket as unknown as never },
-      },
-    );
+    this.baseUrl = config.getOrThrow<string>("SUPABASE_URL");
+    this.serviceRoleKey = config.getOrThrow<string>("SUPABASE_SERVICE_ROLE_KEY");
+  }
+
+  private headers(): Record<string, string> {
+    return {
+      apikey: this.serviceRoleKey,
+      Authorization: `Bearer ${this.serviceRoleKey}`,
+      "Content-Type": "application/json",
+    };
+  }
+
+  async inviteUserByEmail(
+    email: string,
+    options?: { redirectTo?: string; data?: Record<string, unknown> },
+  ): Promise<{ id: string; email: string } | { alreadyExists: true }> {
+    const res = await fetch(`${this.baseUrl}/auth/v1/invite`, {
+      method: "POST",
+      headers: this.headers(),
+      body: JSON.stringify({
+        email,
+        data: options?.data,
+        redirect_to: options?.redirectTo,
+      }),
+    });
+
+    if (res.status === 422 || res.status === 400) {
+      return { alreadyExists: true };
+    }
+    if (!res.ok) {
+      throw new Error(`Falha ao convidar usuário via GoTrue Admin API: ${res.status} ${await res.text()}`);
+    }
+    const body = (await res.json()) as { id: string; email: string };
+    return body;
+  }
+
+  async deleteUser(userId: string): Promise<void> {
+    const res = await fetch(`${this.baseUrl}/auth/v1/admin/users/${userId}`, {
+      method: "DELETE",
+      headers: this.headers(),
+    });
+    if (!res.ok) {
+      throw new Error(`Falha ao excluir usuário via GoTrue Admin API: ${res.status} ${await res.text()}`);
+    }
   }
 }
