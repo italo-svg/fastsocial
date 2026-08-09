@@ -517,7 +517,7 @@ Após todas as tasks completarem:
 | 015 | render-engine-servico | ✅ Concluído | 3 |
 | 016 | integracao-banco-imagens | ✅ Concluído* | 3 |
 | 017 | motor-geracao-imagem-ia | ✅ Concluído* | 3 |
-| 018 | qa-visao-imagem-ia | ⏳ Pendente | 3 |
+| 018 | qa-visao-imagem-ia | ✅ Concluído* | 3 |
 | 019 | composicao-frontend | ⏳ Pendente | 3 |
 | 020 | pesquisa-tendencias-api | ⏳ Pendente | 4 |
 | 021 | conector-pesquisa-fontes | ⏳ Pendente | 4 |
@@ -562,3 +562,5 @@ Status: ⏳ Pendente | 🔄 Executando | ✅ Concluído | ❌ Erro
 \* Task 016: implementado e validado (CA-02 modo gracioso sem chave, CA-04 status) — CA-01/CA-03 (busca real e cache) dependem de `UNSPLASH_ACCESS_KEY`, que o usuário ainda não forneceu (pendência já listada em `.prd/checklist_acessos_e_delegacao.md` como item opcional). Validar assim que a chave existir.
 
 \* Task 017: todos os 6 CAs validados estruturalmente (prompt com as 6 camadas, negative list completa, conditioning com/sem reference_images, attemptNumber, auditoria via GET) usando uma `FAL_API_KEY` fake só para passar do gate de "configurado" — a chamada real ao fal.ai falha (esperado) e o job fica `status='failed'`, mas o `assembled_prompt` completo permanece auditável, que é o que os CAs pedem. `ANTHROPIC_API_KEY` também ausente: as camadas 1 (tone keywords) e 2 (scene brief) caem no fallback determinístico documentado no código, sem quebrar o fluxo. Trocar pelas chaves reais quando o usuário as fornecer (pendência já listada em `.prd/checklist_acessos_e_delegacao.md`).
+
+\* Task 018: sem `ANTHROPIC_API_KEY` real, os 6 CAs foram validados via testes unitários com mocks (`apps/api/src/image-generation/qa-vision.service.spec.ts`, primeira suíte de testes do projeto — `pnpm --filter api test`) cobrindo scores altos/baixos, limite de 3 tentativas, persistência dos scores, e retry limitado em falha de API. CA-06 também confirmado ao vivo via HTTP real (falha graciosamente com `status='qa_failed'` sem trancar o processo). Rodar de novo com a chave real assim que existir para validar os scores de visão de verdade.
