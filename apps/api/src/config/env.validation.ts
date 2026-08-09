@@ -11,4 +11,8 @@ export const envValidationSchema = Joi.object({
   SUPABASE_SERVICE_ROLE_KEY: Joi.string().required(),
   SUPABASE_JWT_SECRET: Joi.string().required(),
   UNSPLASH_ACCESS_KEY: Joi.string().optional(),
+  FAL_API_KEY: Joi.string().optional(),
+  ANTHROPIC_API_KEY: Joi.string().optional(),
+  ANTHROPIC_MODEL: Joi.string().optional(),
+  IMAGE_GEN_REFERENCE_WEIGHT: Joi.number().min(0).max(1).optional(),
 }).unknown(true);
