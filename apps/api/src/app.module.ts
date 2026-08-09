@@ -9,6 +9,7 @@ import { BrandKitModule } from "./brand-kit/brand-kit.module";
 import { TemplatesModule } from "./templates/templates.module";
 import { ImageSourcesModule } from "./image-sources/image-sources.module";
 import { ImageGenerationModule } from "./image-generation/image-generation.module";
+import { ContentPiecesModule } from "./content-pieces/content-pieces.module";
 
 // Módulos de negócio (specs 012 em diante) serão importados aqui conforme forem criados.
 @Module({
@@ -26,6 +27,7 @@ import { ImageGenerationModule } from "./image-generation/image-generation.modul
     TemplatesModule,
     ImageSourcesModule,
     ImageGenerationModule,
+    ContentPiecesModule,
   ],
 })
 export class AppModule {}

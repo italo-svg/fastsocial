@@ -84,10 +84,17 @@ export class QaVisionService {
         where: { id: jobId },
         data: { ...scoreData, status: "qa_rejected" },
       });
-      return this.imageGenerationService.createJob(workspaceId, {
+      const nextJob = await this.imageGenerationService.createJob(workspaceId, {
         contentSlideId: job.contentSlideId,
         attemptNumber: job.attemptNumber + 1,
       });
+      // Sem geracao/QA em fila (BullMQ), o loop de retry acontece dentro da mesma
+      // chamada, recursivamente, ate' um estado terminal ou o limite de tentativas —
+      // o frontend (spec 019) faz uma unica chamada em vez de fazer polling.
+      if (!nextJob.resultImageUrl || nextJob.status === "failed") {
+        return nextJob;
+      }
+      return this.evaluate(workspaceId, nextJob.id);
     }
 
     return this.prisma.imageGenerationJob.update({

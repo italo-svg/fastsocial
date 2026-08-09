@@ -16,4 +16,5 @@ export const envValidationSchema = Joi.object({
   ANTHROPIC_MODEL: Joi.string().optional(),
   IMAGE_GEN_REFERENCE_WEIGHT: Joi.number().min(0).max(1).optional(),
   IMAGE_QA_THRESHOLD: Joi.number().min(0).max(10).optional(),
+  RENDER_ENGINE_URL: Joi.string().uri().optional(),
 }).unknown(true);
