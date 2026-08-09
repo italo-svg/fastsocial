@@ -7,6 +7,7 @@ import { AuthModule } from "./auth/auth.module";
 import { WorkspacesModule } from "./workspaces/workspaces.module";
 import { BrandKitModule } from "./brand-kit/brand-kit.module";
 import { TemplatesModule } from "./templates/templates.module";
+import { ImageSourcesModule } from "./image-sources/image-sources.module";
 
 // Módulos de negócio (specs 012 em diante) serão importados aqui conforme forem criados.
 @Module({
@@ -22,6 +23,7 @@ import { TemplatesModule } from "./templates/templates.module";
     WorkspacesModule,
     BrandKitModule,
     TemplatesModule,
+    ImageSourcesModule,
   ],
 })
 export class AppModule {}
