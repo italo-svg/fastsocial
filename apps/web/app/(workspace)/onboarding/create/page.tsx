@@ -30,7 +30,7 @@ export default function CreateWorkspacePage(): JSX.Element {
         body: JSON.stringify({ name }),
       });
       setActiveWorkspace(workspace.id);
-      router.push("/dashboard");
+      router.push("/onboarding/brand");
     } catch {
       setError("Não foi possível criar o workspace. Tente novamente.");
     } finally {

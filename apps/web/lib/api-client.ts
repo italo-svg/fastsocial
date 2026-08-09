@@ -9,8 +9,9 @@ export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> 
     data: { session },
   } = await supabase.auth.getSession();
 
+  const isFormData = init?.body instanceof FormData;
   const headers: Record<string, string> = {
-    "Content-Type": "application/json",
+    ...(isFormData ? {} : { "Content-Type": "application/json" }),
     ...(init?.headers as Record<string, string> | undefined),
   };
 
