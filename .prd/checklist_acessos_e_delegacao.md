@@ -39,6 +39,17 @@ A boa notícia: **tudo o que é código, configuração e infraestrutura técnic
 - ⚠️ **Risco a validar cedo:** a aprovação de acesso de publicação da LinkedIn para apps de terceiros é notoriamente mais restritiva que a da Meta. Recomendo submeter a solicitação **nas primeiras semanas do projeto**, em paralelo ao desenvolvimento, para não travar o lançamento esperando aprovação. Se for negado, o plano B é publicação assistida (o sistema prepara o post, um humano publica manualmente pela LinkedIn) até conseguirmos acesso via parceria.
 - **O que você me passa depois:** `LINKEDIN_CLIENT_ID`, `LINKEDIN_CLIENT_SECRET`, Company Page de teste.
 
+> **Atualização (spec 027, 2026-08-09):** você decidiu reusar o Postiz que já
+> roda no VPS `N8N.volupia` para a agência, em vez de subir uma instância nova
+> dedicada ao FastSocial (documentado em `infra/postiz/README.md`). Isso muda
+> **onde** `META_APP_ID`/`SECRET` e `LINKEDIN_CLIENT_ID`/`SECRET` são
+> configurados: em vez de env vars do FastSocial, eles entram na própria UI de
+> Configurações de Integração do Postiz existente. Além disso, precisamos de
+> mais um item novo:
+> - [ ] **API key do Postiz existente** — gerada por você em Configurações →
+>   API dentro da sua conta Postiz já em uso (`https://volupia-postiz.bqvgyf.easypanel.host`).
+>   Não consigo gerar isso sozinho por ser vinculado ao seu login pessoal.
+
 ### 1.3 Stripe (billing)
 - [ ] Criar conta em [stripe.com](https://stripe.com) com CNPJ da empresa.
 - [ ] Completar verificação de identidade/conta bancária para receber pagamentos.
