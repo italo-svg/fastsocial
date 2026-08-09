@@ -1,5 +1,6 @@
 import { randomUUID } from "crypto";
 import { BadRequestException, Injectable } from "@nestjs/common";
+import type { Prisma } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import { StorageService } from "../common/services/storage.service";
 import { UpdateBrandKitDto } from "./dto/update-brand-kit.dto";
@@ -42,19 +43,19 @@ export class BrandKitService {
       where: { workspaceId },
       update: {
         ...(dto.niche !== undefined ? { niche: dto.niche } : {}),
-        ...(dto.competitors !== undefined ? { competitors: dto.competitors } : {}),
+        ...(dto.competitors !== undefined ? { competitors: dto.competitors as Prisma.InputJsonValue } : {}),
         ...(dto.toneOfVoice !== undefined ? { toneOfVoice: dto.toneOfVoice } : {}),
-        ...(dto.colorPalette !== undefined ? { colorPalette: dto.colorPalette } : {}),
-        ...(dto.typography !== undefined ? { typography: dto.typography } : {}),
+        ...(dto.colorPalette !== undefined ? { colorPalette: dto.colorPalette as Prisma.InputJsonValue } : {}),
+        ...(dto.typography !== undefined ? { typography: dto.typography as Prisma.InputJsonValue } : {}),
         ...(dto.defaultImageSource !== undefined ? { defaultImageSource: dto.defaultImageSource } : {}),
       },
       create: {
         workspaceId,
         niche: dto.niche,
-        competitors: dto.competitors ?? [],
+        competitors: (dto.competitors ?? []) as Prisma.InputJsonValue,
         toneOfVoice: dto.toneOfVoice,
-        colorPalette: dto.colorPalette ?? {},
-        typography: dto.typography ?? {},
+        colorPalette: (dto.colorPalette ?? {}) as Prisma.InputJsonValue,
+        typography: (dto.typography ?? {}) as Prisma.InputJsonValue,
         defaultImageSource: dto.defaultImageSource ?? "own_library",
       },
     });
@@ -114,8 +115,12 @@ export class BrandKitService {
     const updated = [...current, ...newUrls];
     await this.prisma.brandKit.upsert({
       where: { workspaceId },
-      update: { referenceImages: updated },
-      create: { workspaceId, referenceImages: updated, defaultImageSource: "own_library" },
+      update: { referenceImages: updated as Prisma.InputJsonValue },
+      create: {
+        workspaceId,
+        referenceImages: updated as Prisma.InputJsonValue,
+        defaultImageSource: "own_library",
+      },
     });
 
     return (await this.get(workspaceId))!;
@@ -130,7 +135,10 @@ export class BrandKitService {
     }
 
     const updated = current.filter((_, i) => i !== index);
-    await this.prisma.brandKit.update({ where: { workspaceId }, data: { referenceImages: updated } });
+    await this.prisma.brandKit.update({
+      where: { workspaceId },
+      data: { referenceImages: updated as Prisma.InputJsonValue },
+    });
 
     return (await this.get(workspaceId))!;
   }
