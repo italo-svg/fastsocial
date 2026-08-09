@@ -10,4 +10,8 @@ export class CreateContentPieceDto {
   @IsOptional()
   @IsString()
   briefing?: string;
+
+  @IsOptional()
+  @IsString()
+  insightId?: string;
 }

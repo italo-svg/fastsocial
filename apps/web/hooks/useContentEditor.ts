@@ -33,7 +33,7 @@ const KEY = (id: string | undefined) => ["content-pieces", id];
 
 export function useCreateContentPiece() {
   return useMutation({
-    mutationFn: (data: { templateId: string; format: string; briefing?: string }) =>
+    mutationFn: (data: { templateId: string; format: string; briefing?: string; insightId?: string }) =>
       apiFetch<ContentPiece>("/content-pieces", { method: "POST", body: JSON.stringify(data) }),
   });
 }

@@ -39,6 +39,7 @@ export class ContentPiecesService {
         format: dto.format,
         origin: "manual",
         copyText: dto.briefing,
+        insightId: dto.insightId,
         slides: { create: Array.from({ length: slideCount }, (_, i) => ({ slideOrder: i })) },
       },
       include: { slides: { orderBy: { slideOrder: "asc" } }, template: true },

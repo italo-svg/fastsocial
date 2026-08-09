@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { BriefingPanel } from "@/components/content-editor/BriefingPanel";
 import { TemplateSelector } from "@/components/content-editor/TemplateSelector";
 import { SlideEditor } from "@/components/content-editor/SlideEditor";
@@ -13,10 +14,19 @@ import {
 } from "@/hooks/useContentEditor";
 import type { Template } from "@/hooks/useTemplates";
 
-export default function NewContentPage(): JSX.Element {
+function NewContentPageInner(): JSX.Element {
+  const searchParams = useSearchParams();
+  const insightIdFromQuery = searchParams.get("insightId") ?? undefined;
+  const summaryFromQuery = searchParams.get("summary") ?? "";
+
   const [contentPieceId, setContentPieceId] = useState<string | null>(null);
   const [briefing, setBriefing] = useState("");
   const [targetNetwork, setTargetNetwork] = useState<TargetNetwork>("instagram");
+
+  useEffect(() => {
+    if (summaryFromQuery) setBriefing(summaryFromQuery);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const createPiece = useCreateContentPiece();
   const updateTemplate = useUpdateContentPieceTemplate(contentPieceId ?? "");
@@ -25,7 +35,7 @@ export default function NewContentPage(): JSX.Element {
   function handleSelectTemplate(template: Template): void {
     if (!contentPieceId) {
       createPiece.mutate(
-        { templateId: template.id, format: template.format, briefing },
+        { templateId: template.id, format: template.format, briefing, insightId: insightIdFromQuery },
         { onSuccess: (created) => setContentPieceId(created.id) },
       );
     } else {
@@ -40,6 +50,10 @@ export default function NewContentPage(): JSX.Element {
     <main className="mx-auto grid max-w-6xl grid-cols-1 gap-8 p-6 lg:grid-cols-2">
       <div className="space-y-6">
         <h1 className="text-xl font-semibold">Novo conteúdo</h1>
+
+        {insightIdFromQuery && (
+          <p className="text-xs text-neutral-600">Criando a partir de um insight de pesquisa selecionado.</p>
+        )}
 
         {!contentPieceId && <BriefingPanel value={briefing} onChange={setBriefing} />}
 
@@ -79,5 +93,13 @@ export default function NewContentPage(): JSX.Element {
         )}
       </div>
     </main>
+  );
+}
+
+export default function NewContentPage(): JSX.Element {
+  return (
+    <Suspense fallback={<main className="p-6 text-sm text-neutral-600">Carregando...</main>}>
+      <NewContentPageInner />
+    </Suspense>
   );
 }
