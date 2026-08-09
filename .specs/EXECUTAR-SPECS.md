@@ -506,7 +506,7 @@ Após todas as tasks completarem:
 | 004 | setup-nestjs-api | ✅ Concluído | 0 |
 | 005 | setup-nextjs-web | ✅ Concluído | 0 |
 | 006 | auth-jwt-api | ✅ Concluído | 1 |
-| 007 | multitenant-middleware | ⏳ Pendente | 1 |
+| 007 | multitenant-middleware | ✅ Concluído | 1 |
 | 008 | auth-frontend | ⏳ Pendente | 1 |
 | 009 | workspace-provisioning | ⏳ Pendente | 1 |
 | 010 | crud-brand-kit-api | ⏳ Pendente | 2 |
