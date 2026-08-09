@@ -523,7 +523,7 @@ Após todas as tasks completarem:
 | 021 | conector-pesquisa-fontes | ✅ Concluído* | 4 |
 | 022 | geracao-copy-claude | ✅ Concluído* | 4 |
 | 023 | diretor-de-cena | ✅ Concluído* | 4 |
-| 024 | pesquisa-frontend | ⏳ Pendente | 4 |
+| 024 | pesquisa-frontend | ✅ Concluído | 4 |
 | 025 | content-pieces-api | ⏳ Pendente | 5 |
 | 026 | fila-aprovacao-frontend | ⏳ Pendente | 5 |
 | 027 | postiz-selfhosted-deploy | ⏳ Pendente | 6 |
