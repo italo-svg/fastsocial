@@ -510,7 +510,7 @@ Após todas as tasks completarem:
 | 008 | auth-frontend | ✅ Concluído | 1 |
 | 009 | workspace-provisioning | ✅ Concluído | 1 |
 | 010 | crud-brand-kit-api | ✅ Concluído | 2 |
-| 011 | onboarding-wizard-frontend | ⏳ Pendente | 2 |
+| 011 | onboarding-wizard-frontend | ✅ Concluído | 2 |
 | 012 | crud-template-assets-api | ⏳ Pendente | 2 |
 | 013 | importador-canva-gamma | ⏳ Pendente | 2 |
 | 014 | acervo-templates-frontend | ⏳ Pendente | 2 |
