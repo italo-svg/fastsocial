@@ -1,5 +1,5 @@
 import { Type } from "class-transformer";
-import { ArrayMinSize, IsArray, IsIn, IsInt, IsNumber, IsOptional, IsString, Min, ValidateNested } from "class-validator";
+import { IsArray, IsIn, IsInt, IsNumber, IsOptional, IsString, Min, ValidateNested } from "class-validator";
 
 export class TemplateZoneDto {
   @IsString()
@@ -38,8 +38,15 @@ export class TemplateZoneDto {
 
 export class SlotMapDto {
   @IsArray()
-  @ArrayMinSize(1)
   @ValidateNested({ each: true })
   @Type(() => TemplateZoneDto)
   zones!: TemplateZoneDto[];
+
+  // Preservado nas edicoes feitas pelo editor visual (spec 014) - sem isso o
+  // whitelist:true global descartaria as imagens de fundo importadas (spec 013)
+  // a cada PUT /templates/:id, pois a classe nao declarava o campo.
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  backgroundImages?: string[];
 }
