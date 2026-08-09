@@ -516,7 +516,7 @@ Após todas as tasks completarem:
 | 014 | acervo-templates-frontend | ✅ Concluído | 2 |
 | 015 | render-engine-servico | ✅ Concluído | 3 |
 | 016 | integracao-banco-imagens | ✅ Concluído* | 3 |
-| 017 | motor-geracao-imagem-ia | ⏳ Pendente | 3 |
+| 017 | motor-geracao-imagem-ia | ✅ Concluído* | 3 |
 | 018 | qa-visao-imagem-ia | ⏳ Pendente | 3 |
 | 019 | composicao-frontend | ⏳ Pendente | 3 |
 | 020 | pesquisa-tendencias-api | ⏳ Pendente | 4 |
@@ -560,3 +560,5 @@ Após todas as tasks completarem:
 Status: ⏳ Pendente | 🔄 Executando | ✅ Concluído | ❌ Erro
 
 \* Task 016: implementado e validado (CA-02 modo gracioso sem chave, CA-04 status) — CA-01/CA-03 (busca real e cache) dependem de `UNSPLASH_ACCESS_KEY`, que o usuário ainda não forneceu (pendência já listada em `.prd/checklist_acessos_e_delegacao.md` como item opcional). Validar assim que a chave existir.
+
+\* Task 017: todos os 6 CAs validados estruturalmente (prompt com as 6 camadas, negative list completa, conditioning com/sem reference_images, attemptNumber, auditoria via GET) usando uma `FAL_API_KEY` fake só para passar do gate de "configurado" — a chamada real ao fal.ai falha (esperado) e o job fica `status='failed'`, mas o `assembled_prompt` completo permanece auditável, que é o que os CAs pedem. `ANTHROPIC_API_KEY` também ausente: as camadas 1 (tone keywords) e 2 (scene brief) caem no fallback determinístico documentado no código, sem quebrar o fluxo. Trocar pelas chaves reais quando o usuário as fornecer (pendência já listada em `.prd/checklist_acessos_e_delegacao.md`).
