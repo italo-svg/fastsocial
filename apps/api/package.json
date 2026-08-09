@@ -1,0 +1,21 @@
+{
+  "name": "@fastsocial/api",
+  "private": true,
+  "version": "0.1.0",
+  "scripts": {
+    "prisma:migrate": "prisma migrate dev",
+    "prisma:generate": "prisma generate",
+    "prisma:seed": "tsx prisma/seed.ts",
+    "build": "echo 'build definido no spec 004'",
+    "lint": "echo 'lint definido no spec 004'",
+    "test": "echo 'test definido no spec 004'"
+  },
+  "dependencies": {
+    "@prisma/client": "^5.20.0"
+  },
+  "devDependencies": {
+    "prisma": "^5.20.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.0"
+  }
+}

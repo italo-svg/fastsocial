@@ -500,8 +500,8 @@ Após todas as tasks completarem:
 
 | Task | Feature | Status | Fase |
 |------|---------|--------|------|
-| 001 | setup-monorepo | ⏳ Pendente | 0 |
-| 002 | setup-docker-compose | ⏳ Pendente | 0 |
+| 001 | setup-monorepo | ✅ Concluído | 0 |
+| 002 | setup-docker-compose | ✅ Concluído | 0 |
 | 003 | schema-postgres-core | ⏳ Pendente | 0 |
 | 004 | setup-nestjs-api | ⏳ Pendente | 0 |
 | 005 | setup-nextjs-web | ⏳ Pendente | 0 |
