@@ -52,4 +52,9 @@ Para a API do produto (spec `004` em diante) usar essas credenciais, elas precis
 - [x] `GET /auth/v1/health` com `apikey` retorna resposta válida do GoTrue.
 - [x] Studio acessível via Kong com basic auth (redirect 307 esperado na raiz).
 - [x] Certificado HTTPS válido emitido automaticamente (Let's Encrypt, resolver `letsencrypt` já existente do Easypanel).
-- [ ] `REST /rest/v1/` retornou 403 com a `anon key` — esperado neste ponto (schema/roles ainda não configurados pela spec `003`); revalidar depois que o schema do produto for aplicado.
+- [x] Schema completo do produto aplicado (spec `003`) — 25 tabelas, RLS, trigger de sincronização `auth.users` → `public.users` testado com signup real, funções de negócio testadas.
+- [x] 4 buckets de Storage criados (`brand-assets`, `templates`, `content-renders`, `exports`).
+
+## Pendência conhecida: SMTP
+
+`ENABLE_EMAIL_AUTOCONFIRM=true` está ativado no `.env` do servidor — novos cadastros são confirmados automaticamente, **sem enviar e-mail real**, porque nenhum SMTP foi configurado ainda. Isso é aceitável para desenvolvimento, mas **antes de qualquer cliente real usar o cadastro**, configurar um provedor SMTP real (`SMTP_HOST`/`SMTP_PORT`/`SMTP_USER`/`SMTP_PASS`/`SMTP_ADMIN_EMAIL` no `.env`) e voltar `ENABLE_EMAIL_AUTOCONFIRM` para `false` — do contrário, e-mails de confirmação de cadastro, recuperação de senha e convite (spec `009`) nunca serão enviados de verdade.
