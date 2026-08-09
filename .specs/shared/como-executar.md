@@ -2,6 +2,18 @@
 
 > **Não há ambiente local para este projeto.** Por decisão explícita do dono do produto, nada é instalado/rodado na máquina de quem desenvolve — todo o stack (Supabase self-hospedado, Postiz, n8n, Redis, Traefik, API, render-engine, painel) roda direto no VPS Hostinger já existente (**N8N.volupia**, `69.62.92.74`, KVM 2 — já tem Postiz e n8n instalados). Onde qualquer spec individual mencionar `localhost:3333`, `localhost:3000` etc. nos "Comandos de Validação", isso deve ser executado **via SSH, de dentro do próprio VPS** (onde os serviços realmente escutam em `localhost` uns para os outros) — nunca a partir da máquina local. Não crie `docker-compose.override.yml` de desenvolvimento local nem peça ao usuário para instalar Docker Desktop/Node localmente.
 
+## Gotcha conhecido: variáveis `NEXT_PUBLIC_*` do painel
+
+No `apps/web`, toda variável `NEXT_PUBLIC_*` é embutida no bundle JavaScript **em tempo de build**, não lida em runtime do container. Passar `-e NEXT_PUBLIC_SUPABASE_URL=...` só no `docker run` **não tem efeito nenhum** no código já compilado — o build precisa receber isso como `--build-arg` (o `apps/web/Dockerfile` já declara os `ARG`/`ENV` necessários). Sempre construir a imagem do painel assim:
+```bash
+docker build \
+  --build-arg NEXT_PUBLIC_API_URL=https://api.fastsocial.volupia.cloud \
+  --build-arg NEXT_PUBLIC_SUPABASE_URL=https://supabase.fastsocial.volupia.cloud \
+  --build-arg NEXT_PUBLIC_SUPABASE_ANON_KEY=<anon_key> \
+  -t fastsocial-web:prod .
+```
+Esquecer isso resulta em erro silencioso só visível no console do navegador (`@supabase/ssr: Your project's URL and API key are required`), não no build nem nos logs do container.
+
 ## Acesso ao VPS
 
 - IP: `69.62.92.74` (hostname `N8N.volupia`, data center Campinas/BR).
