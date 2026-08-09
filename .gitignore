@@ -38,6 +38,11 @@ secrets.*
 # MCP local (contém token da API da Hostinger)
 .mcp.json
 
+# Dados de runtime de infra self-hosted (nunca versionar dados de banco/storage)
+infra/**/volumes/db/data/
+infra/**/volumes/storage/**/data/
+infra/**/*.env
+
 # Node / monorepo
 node_modules/
 dist/

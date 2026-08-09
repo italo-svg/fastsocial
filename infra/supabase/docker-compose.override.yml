@@ -1,0 +1,12 @@
+# Override local: expõe só o Kong na rede overlay do Easypanel (para o Traefik existente alcançar),
+# mantendo o resto do stack Supabase isolado na rede interna padrão do compose.
+# NÃO editar o docker-compose.yml principal (arquivo oficial do Supabase, facilita update futuro).
+networks:
+  easypanel:
+    external: true
+
+services:
+  kong:
+    networks:
+      - default
+      - easypanel
