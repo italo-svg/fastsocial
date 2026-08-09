@@ -11,6 +11,10 @@ interface CompleteParams {
   maxTokens?: number;
 }
 
+interface CompleteWithImageParams extends CompleteParams {
+  imageUrl: string;
+}
+
 // REST puro (nao @anthropic-ai/sdk) — mesma decisao de apps/api/src/common/services/
 // storage.service.ts e supabase-admin.service.ts: evitar SDKs completos e suas
 // dependencias transitivas quando um fetch simples resolve, reduzindo risco de
@@ -48,6 +52,49 @@ export class AnthropicService {
 
     if (!res.ok) {
       throw new Error(`Falha ao chamar Anthropic API: ${res.status} ${await res.text()}`);
+    }
+
+    const data = (await res.json()) as AnthropicMessageResponse;
+    return data.content
+      .map((block) => block.text)
+      .join("")
+      .trim();
+  }
+
+  // Content block "image" com source tipo "url" — formato mais recente da API de
+  // visao da Anthropic; conferir a documentacao atual antes de ligar billing real,
+  // mesma ressalva do fal-flux.provider.ts (spec 017) sobre providers externos.
+  async completeWithImage(params: CompleteWithImageParams): Promise<string> {
+    const apiKey = this.config.get<string>("ANTHROPIC_API_KEY");
+    if (!apiKey) {
+      throw new Error("ANTHROPIC_API_KEY não configurada.");
+    }
+
+    const res = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "x-api-key": apiKey,
+        "anthropic-version": "2023-06-01",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: this.config.get<string>("ANTHROPIC_MODEL") ?? AnthropicService.DEFAULT_MODEL,
+        max_tokens: params.maxTokens ?? 300,
+        ...(params.system ? { system: params.system } : {}),
+        messages: [
+          {
+            role: "user",
+            content: [
+              { type: "image", source: { type: "url", url: params.imageUrl } },
+              { type: "text", text: params.prompt },
+            ],
+          },
+        ],
+      }),
+    });
+
+    if (!res.ok) {
+      throw new Error(`Falha ao chamar Anthropic API (visão): ${res.status} ${await res.text()}`);
     }
 
     const data = (await res.json()) as AnthropicMessageResponse;
