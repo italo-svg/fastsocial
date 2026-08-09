@@ -32,9 +32,7 @@ export default function WorkspaceSelectPage(): JSX.Element {
       <main className="flex min-h-screen items-center justify-center p-8">
         <Card className="max-w-sm text-center space-y-3">
           <p>Você ainda não tem nenhum workspace.</p>
-          <p className="text-sm text-neutral-600">
-            A criação de workspace será habilitada em breve (spec 009).
-          </p>
+          <Button onClick={() => router.push("/onboarding/create")}>Criar meu workspace</Button>
         </Card>
       </main>
     );

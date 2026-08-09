@@ -4,8 +4,9 @@ import { envValidationSchema } from "./config/env.validation";
 import { PrismaModule } from "./prisma/prisma.module";
 import { HealthModule } from "./health/health.module";
 import { AuthModule } from "./auth/auth.module";
+import { WorkspacesModule } from "./workspaces/workspaces.module";
 
-// Módulos de negócio (specs 007 em diante) serão importados aqui conforme forem criados.
+// Módulos de negócio (specs 010 em diante) serão importados aqui conforme forem criados.
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -16,6 +17,7 @@ import { AuthModule } from "./auth/auth.module";
     PrismaModule,
     HealthModule,
     AuthModule,
+    WorkspacesModule,
   ],
 })
 export class AppModule {}

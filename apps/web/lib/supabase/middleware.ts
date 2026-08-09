@@ -31,7 +31,7 @@ export async function updateSession(request: NextRequest) {
   const isProtectedRoute =
     request.nextUrl.pathname.startsWith("/dashboard") ||
     request.nextUrl.pathname.startsWith("/workspace-select") ||
-    request.nextUrl.pathname.match(/^\/(templates|content|research|approval-queue|automations|settings)/);
+    request.nextUrl.pathname.match(/^\/(templates|content|research|approval-queue|automations|settings|onboarding|invites)/);
 
   if (!user && isProtectedRoute) {
     const redirectUrl = new URL("/login", request.url);
