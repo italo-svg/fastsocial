@@ -51,9 +51,9 @@ export default function ResearchPage(): JSX.Element {
       )}
 
       <p className="text-xs text-neutral-600">
-        Nenhuma fonte de pesquisa automática configurada ainda? Nesse caso o botão "Pesquisar agora" roda
-        normalmente, mas pode não trazer insights novos — você sempre pode criar um insight manual a partir
-        de um briefing direto no editor de conteúdo.
+        Nenhuma fonte de pesquisa automática configurada ainda? Nesse caso o botão &ldquo;Pesquisar
+        agora&rdquo; roda normalmente, mas pode não trazer insights novos — você sempre pode criar um
+        insight manual a partir de um briefing direto no editor de conteúdo.
       </p>
 
       <div className="flex flex-wrap gap-3">
