@@ -1,14 +1,17 @@
 // Schema do FastSocial — fonte da verdade: .prd/prd_autocontent_os.md, Secao 6
 // auth.users e gerenciado pelo GoTrue (Supabase self-hosted) - nao modelado aqui.
-// public.users.id == auth.users.id, populado via trigger handle_new_user() (SQL manual, ver migrations).
+// public.users.id == auth.users.id (tipo nativo uuid, para casar com auth.uid() nas policies RLS),
+// populado via trigger handle_new_user() (SQL manual, ver manual-sql/).
+// Todo campo que guarda um UUID usa @db.Uuid explicitamente — sem isso o Prisma mapeia
+// String para TEXT, o que quebra comparacoes com auth.uid() (tipo uuid nativo) em RLS.
 
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
   directUrl = env("DIRECT_DATABASE_URL")
 }
 
@@ -17,7 +20,7 @@ datasource db {
 // ============================================================
 
 model Workspace {
-  id        String   @id @default(uuid())
+  id        String   @id @default(uuid()) @db.Uuid
   name      String
   slug      String   @unique
   planType  String   @default("trial") @map("plan_type")
@@ -25,33 +28,33 @@ model Workspace {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
 
-  members            WorkspaceMember[]
-  brandKit           BrandKit?
-  templateAssets     TemplateAsset[]
-  researchInsights   ResearchInsight[]
-  contentPieces      ContentPiece[]
-  socialAccounts     SocialAccount[]
-  autopilotPipeline  AutopilotPipeline?
-  subscription       Subscription?
-  auditLogs          AuditLog[]
-  invites            WorkspaceInvite[]
-  addons             WorkspaceAddon[]
-  automationFlows    AutomationFlow[]
+  members           WorkspaceMember[]
+  brandKit          BrandKit?
+  templateAssets    TemplateAsset[]
+  researchInsights  ResearchInsight[]
+  contentPieces     ContentPiece[]
+  socialAccounts    SocialAccount[]
+  autopilotPipeline AutopilotPipeline?
+  subscription      Subscription?
+  auditLogs         AuditLog[]
+  invites           WorkspaceInvite[]
+  addons            WorkspaceAddon[]
+  automationFlows   AutomationFlow[]
 
   @@map("workspaces")
 }
 
 model User {
-  id           String   @id
+  id           String   @id @db.Uuid
   email        String   @unique
   name         String
   authProvider String   @default("email") @map("auth_provider")
   createdAt    DateTime @default(now()) @map("created_at")
 
   memberships    WorkspaceMember[]
-  createdContent ContentPiece[]      @relation("ContentCreatedBy")
+  createdContent ContentPiece[]        @relation("ContentCreatedBy")
   auditLogs      AuditLog[]
-  systemPrompts  SystemPrompt[]      @relation("PromptUpdatedBy")
+  systemPrompts  SystemPrompt[]        @relation("PromptUpdatedBy")
   promptVersions SystemPromptVersion[]
   helpArticles   HelpArticle[]
   changelogs     ChangelogEntry[]
@@ -61,9 +64,9 @@ model User {
 }
 
 model WorkspaceMember {
-  id          String    @id @default(uuid())
-  workspaceId String    @map("workspace_id")
-  userId      String    @map("user_id")
+  id          String    @id @default(uuid()) @db.Uuid
+  workspaceId String    @map("workspace_id") @db.Uuid
+  userId      String    @map("user_id") @db.Uuid
   role        String
   invitedAt   DateTime  @default(now()) @map("invited_at")
   joinedAt    DateTime? @map("joined_at")
@@ -76,8 +79,8 @@ model WorkspaceMember {
 }
 
 model WorkspaceInvite {
-  id          String    @id @default(uuid())
-  workspaceId String    @map("workspace_id")
+  id          String    @id @default(uuid()) @db.Uuid
+  workspaceId String    @map("workspace_id") @db.Uuid
   email       String
   role        String
   token       String    @unique
@@ -95,8 +98,8 @@ model WorkspaceInvite {
 // ============================================================
 
 model BrandKit {
-  id                 String   @id @default(uuid())
-  workspaceId        String   @unique @map("workspace_id")
+  id                 String   @id @default(uuid()) @db.Uuid
+  workspaceId        String   @unique @map("workspace_id") @db.Uuid
   niche              String?
   competitors        Json     @default("[]")
   toneOfVoice        String?  @map("tone_of_voice")
@@ -113,17 +116,17 @@ model BrandKit {
 }
 
 model TemplateAsset {
-  id               String   @id @default(uuid())
-  workspaceId      String?  @map("workspace_id")
-  source           String   @default("system")
+  id               String    @id @default(uuid()) @db.Uuid
+  workspaceId      String?   @map("workspace_id") @db.Uuid
+  source           String    @default("system")
   format           String
-  slotMap          Json     @default("{}") @map("slot_map")
-  previewUrl       String?  @map("preview_url")
-  isSystemTemplate Boolean  @default(false) @map("is_system_template")
+  slotMap          Json      @default("{}") @map("slot_map")
+  previewUrl       String?   @map("preview_url")
+  isSystemTemplate Boolean   @default(false) @map("is_system_template")
   deletedAt        DateTime? @map("deleted_at")
-  createdAt        DateTime @default(now()) @map("created_at")
+  createdAt        DateTime  @default(now()) @map("created_at")
 
-  workspace     Workspace?      @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  workspace     Workspace?     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   contentPieces ContentPiece[]
 
   @@map("template_assets")
@@ -134,15 +137,15 @@ model TemplateAsset {
 // ============================================================
 
 model ResearchInsight {
-  id              String    @id @default(uuid())
-  workspaceId     String    @map("workspace_id")
-  sourceType      String    @map("source_type")
-  sourceRef       String?   @map("source_ref")
+  id              String   @id @default(uuid()) @db.Uuid
+  workspaceId     String   @map("workspace_id") @db.Uuid
+  sourceType      String   @map("source_type")
+  sourceRef       String?  @map("source_ref")
   summary         String
-  relevanceScore  Decimal   @default(0) @map("relevance_score") @db.Decimal(4, 2)
-  suggestedFormat String?   @map("suggested_format")
-  consumed        Boolean   @default(false)
-  capturedAt      DateTime  @default(now()) @map("captured_at")
+  relevanceScore  Decimal  @default(0) @map("relevance_score") @db.Decimal(4, 2)
+  suggestedFormat String?  @map("suggested_format")
+  consumed        Boolean  @default(false)
+  capturedAt      DateTime @default(now()) @map("captured_at")
 
   workspace     Workspace      @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   contentPieces ContentPiece[]
@@ -151,24 +154,24 @@ model ResearchInsight {
 }
 
 model ContentPiece {
-  id          String   @id @default(uuid())
-  workspaceId String   @map("workspace_id")
-  insightId   String?  @map("insight_id")
-  templateId  String?  @map("template_id")
-  format      String
-  origin      String   @default("manual")
-  copyText    String?  @map("copy_text")
-  status      String   @default("draft")
-  rejectionReason String? @map("rejection_reason")
-  documentUrl String?  @map("document_url")
-  createdBy   String?  @map("created_by")
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at")
+  id              String   @id @default(uuid()) @db.Uuid
+  workspaceId     String   @map("workspace_id") @db.Uuid
+  insightId       String?  @map("insight_id") @db.Uuid
+  templateId      String?  @map("template_id") @db.Uuid
+  format          String
+  origin          String   @default("manual")
+  copyText        String?  @map("copy_text")
+  status          String   @default("draft")
+  rejectionReason String?  @map("rejection_reason")
+  documentUrl     String?  @map("document_url")
+  createdBy       String?  @map("created_by") @db.Uuid
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @default(now()) @updatedAt @map("updated_at")
 
-  workspace    Workspace         @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  insight      ResearchInsight?  @relation(fields: [insightId], references: [id], onDelete: SetNull)
-  template     TemplateAsset?    @relation(fields: [templateId], references: [id], onDelete: SetNull)
-  creator      User?             @relation("ContentCreatedBy", fields: [createdBy], references: [id], onDelete: SetNull)
+  workspace    Workspace        @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  insight      ResearchInsight? @relation(fields: [insightId], references: [id], onDelete: SetNull)
+  template     TemplateAsset?   @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  creator      User?            @relation("ContentCreatedBy", fields: [createdBy], references: [id], onDelete: SetNull)
   slides       ContentSlide[]
   publications Publication[]
 
@@ -176,8 +179,8 @@ model ContentPiece {
 }
 
 model ContentSlide {
-  id                 String   @id @default(uuid())
-  contentPieceId     String   @map("content_piece_id")
+  id                 String   @id @default(uuid()) @db.Uuid
+  contentPieceId     String   @map("content_piece_id") @db.Uuid
   slideOrder         Int      @map("slide_order")
   slideText          String?  @map("slide_text")
   imageSource        String   @default("own_library") @map("image_source")
@@ -185,7 +188,7 @@ model ContentSlide {
   renderedImageUrl   String?  @map("rendered_image_url")
   createdAt          DateTime @default(now()) @map("created_at")
 
-  contentPiece ContentPiece          @relation(fields: [contentPieceId], references: [id], onDelete: Cascade)
+  contentPiece ContentPiece         @relation(fields: [contentPieceId], references: [id], onDelete: Cascade)
   imageJobs    ImageGenerationJob[]
 
   @@unique([contentPieceId, slideOrder])
@@ -193,18 +196,18 @@ model ContentSlide {
 }
 
 model ImageGenerationJob {
-  id                    String   @id @default(uuid())
-  contentSlideId        String   @map("content_slide_id")
-  assembledPrompt       String   @map("assembled_prompt")
-  modelProvider         String   @map("model_provider")
-  referenceImagesUsed   Json     @default("[]") @map("reference_images_used")
-  resultImageUrl        String?  @map("result_image_url")
-  qaBrandFitScore       Decimal? @map("qa_brand_fit_score") @db.Decimal(3, 1)
-  qaArtifactScore       Decimal? @map("qa_artifact_score") @db.Decimal(3, 1)
-  qaNegativeSpaceScore  Decimal? @map("qa_negative_space_score") @db.Decimal(3, 1)
-  attemptNumber         Int      @default(1) @map("attempt_number")
-  status                String   @default("pending")
-  createdAt             DateTime @default(now()) @map("created_at")
+  id                   String   @id @default(uuid()) @db.Uuid
+  contentSlideId       String   @map("content_slide_id") @db.Uuid
+  assembledPrompt      String   @map("assembled_prompt")
+  modelProvider        String   @map("model_provider")
+  referenceImagesUsed  Json     @default("[]") @map("reference_images_used")
+  resultImageUrl       String?  @map("result_image_url")
+  qaBrandFitScore      Decimal? @map("qa_brand_fit_score") @db.Decimal(3, 1)
+  qaArtifactScore      Decimal? @map("qa_artifact_score") @db.Decimal(3, 1)
+  qaNegativeSpaceScore Decimal? @map("qa_negative_space_score") @db.Decimal(3, 1)
+  attemptNumber        Int      @default(1) @map("attempt_number")
+  status               String   @default("pending")
+  createdAt            DateTime @default(now()) @map("created_at")
 
   contentSlide ContentSlide @relation(fields: [contentSlideId], references: [id], onDelete: Cascade)
 
@@ -216,8 +219,8 @@ model ImageGenerationJob {
 // ============================================================
 
 model SocialAccount {
-  id                    String    @id @default(uuid())
-  workspaceId           String    @map("workspace_id")
+  id                    String    @id @default(uuid()) @db.Uuid
+  workspaceId           String    @map("workspace_id") @db.Uuid
   network               String
   externalAccountId     String    @map("external_account_id")
   displayName           String?   @map("display_name")
@@ -227,8 +230,8 @@ model SocialAccount {
   status                String    @default("connected")
   connectedAt           DateTime  @default(now()) @map("connected_at")
 
-  workspace       Workspace          @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  publications    Publication[]
+  workspace          Workspace           @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  publications       Publication[]
   automationTriggers AutomationTrigger[]
 
   @@unique([workspaceId, network, externalAccountId])
@@ -236,33 +239,33 @@ model SocialAccount {
 }
 
 model Publication {
-  id                 String    @id @default(uuid())
-  contentPieceId     String    @map("content_piece_id")
-  socialAccountId    String    @map("social_account_id")
-  postizReferenceId  String?   @map("postiz_reference_id")
-  scheduledAt        DateTime  @map("scheduled_at")
-  publishedAt        DateTime? @map("published_at")
-  status             String    @default("scheduled")
-  errorMessage       String?   @map("error_message")
-  createdAt          DateTime  @default(now()) @map("created_at")
+  id                String    @id @default(uuid()) @db.Uuid
+  contentPieceId    String    @map("content_piece_id") @db.Uuid
+  socialAccountId   String    @map("social_account_id") @db.Uuid
+  postizReferenceId String?   @map("postiz_reference_id")
+  scheduledAt       DateTime  @map("scheduled_at")
+  publishedAt       DateTime? @map("published_at")
+  status            String    @default("scheduled")
+  errorMessage      String?   @map("error_message")
+  createdAt         DateTime  @default(now()) @map("created_at")
 
-  contentPiece      ContentPiece        @relation(fields: [contentPieceId], references: [id], onDelete: Cascade)
-  socialAccount     SocialAccount       @relation(fields: [socialAccountId], references: [id], onDelete: Cascade)
+  contentPiece       ContentPiece        @relation(fields: [contentPieceId], references: [id], onDelete: Cascade)
+  socialAccount      SocialAccount       @relation(fields: [socialAccountId], references: [id], onDelete: Cascade)
   analyticsSnapshots AnalyticsSnapshot[]
 
   @@map("publications")
 }
 
 model AnalyticsSnapshot {
-  id          String   @id @default(uuid())
-  publicationId String @map("publication_id")
-  reach       Int      @default(0)
-  impressions Int      @default(0)
-  likes       Int      @default(0)
-  comments    Int      @default(0)
-  shares      Int      @default(0)
-  saves       Int      @default(0)
-  capturedAt  DateTime @default(now()) @map("captured_at")
+  id            String   @id @default(uuid()) @db.Uuid
+  publicationId String   @map("publication_id") @db.Uuid
+  reach         Int      @default(0)
+  impressions   Int      @default(0)
+  likes         Int      @default(0)
+  comments      Int      @default(0)
+  shares        Int      @default(0)
+  saves         Int      @default(0)
+  capturedAt    DateTime @default(now()) @map("captured_at")
 
   publication Publication @relation(fields: [publicationId], references: [id], onDelete: Cascade)
 
@@ -274,16 +277,16 @@ model AnalyticsSnapshot {
 // ============================================================
 
 model AutopilotPipeline {
-  id               String   @id @default(uuid())
-  workspaceId      String   @unique @map("workspace_id")
-  isActive         Boolean  @default(false) @map("is_active")
-  postsPerWeek     Int      @default(3) @map("posts_per_week")
-  formatMix        Json     @default("{\"static_post\": 0.5, \"carousel\": 0.5}") @map("format_mix")
-  requiresApproval Boolean  @default(true) @map("requires_approval")
-  preferredTimes   Json     @default("[\"09:00\",\"18:00\"]") @map("preferred_times")
+  id               String    @id @default(uuid()) @db.Uuid
+  workspaceId      String    @unique @map("workspace_id") @db.Uuid
+  isActive         Boolean   @default(false) @map("is_active")
+  postsPerWeek     Int       @default(3) @map("posts_per_week")
+  formatMix        Json      @default("{\"static_post\": 0.5, \"carousel\": 0.5}") @map("format_mix")
+  requiresApproval Boolean   @default(true) @map("requires_approval")
+  preferredTimes   Json      @default("[\"09:00\",\"18:00\"]") @map("preferred_times")
   lastRunAt        DateTime? @map("last_run_at")
-  createdAt        DateTime @default(now()) @map("created_at")
-  updatedAt        DateTime @default(now()) @updatedAt @map("updated_at")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @default(now()) @updatedAt @map("updated_at")
 
   workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
 
@@ -291,15 +294,15 @@ model AutopilotPipeline {
 }
 
 model Subscription {
-  id                  String    @id @default(uuid())
-  workspaceId         String    @unique @map("workspace_id")
-  planType            String    @default("trial") @map("plan_type")
-  maxSocialAccounts   Int       @default(1) @map("max_social_accounts")
-  maxPostsPerMonth    Int       @default(20) @map("max_posts_per_month")
-  billingStatus       String    @default("active") @map("billing_status")
-  stripeCustomerId    String?   @map("stripe_customer_id")
-  currentPeriodEnd    DateTime? @map("current_period_end")
-  createdAt           DateTime  @default(now()) @map("created_at")
+  id                String    @id @default(uuid()) @db.Uuid
+  workspaceId       String    @unique @map("workspace_id") @db.Uuid
+  planType          String    @default("trial") @map("plan_type")
+  maxSocialAccounts Int       @default(1) @map("max_social_accounts")
+  maxPostsPerMonth  Int       @default(20) @map("max_posts_per_month")
+  billingStatus     String    @default("active") @map("billing_status")
+  stripeCustomerId  String?   @map("stripe_customer_id")
+  currentPeriodEnd  DateTime? @map("current_period_end")
+  createdAt         DateTime  @default(now()) @map("created_at")
 
   workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
 
@@ -307,12 +310,12 @@ model Subscription {
 }
 
 model WorkspaceAddon {
-  id                        String   @id @default(uuid())
-  workspaceId               String   @map("workspace_id")
-  addonKey                  String   @map("addon_key")
-  status                    String   @default("active")
-  stripeSubscriptionItemId  String?  @map("stripe_subscription_item_id")
-  activatedAt               DateTime @default(now()) @map("activated_at")
+  id                       String   @id @default(uuid()) @db.Uuid
+  workspaceId              String   @map("workspace_id") @db.Uuid
+  addonKey                 String   @map("addon_key")
+  status                   String   @default("active")
+  stripeSubscriptionItemId String?  @map("stripe_subscription_item_id")
+  activatedAt              DateTime @default(now()) @map("activated_at")
 
   workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
 
@@ -321,12 +324,12 @@ model WorkspaceAddon {
 }
 
 model AuditLog {
-  id          String   @id @default(uuid())
-  workspaceId String?  @map("workspace_id")
-  userId      String?  @map("user_id")
+  id          String   @id @default(uuid()) @db.Uuid
+  workspaceId String?  @map("workspace_id") @db.Uuid
+  userId      String?  @map("user_id") @db.Uuid
   action      String
   entityType  String   @map("entity_type")
-  entityId    String?  @map("entity_id")
+  entityId    String?  @map("entity_id") @db.Uuid
   metadata    Json     @default("{}")
   createdAt   DateTime @default(now()) @map("created_at")
 
@@ -341,18 +344,18 @@ model AuditLog {
 // ============================================================
 
 model FunnelEvent {
-  id            String   @id @default(uuid())
-  anonymousId   String   @map("anonymous_id")
-  userId        String?  @map("user_id")
-  workspaceId   String?  @map("workspace_id")
-  eventName     String   @map("event_name")
-  utmSource     String?  @map("utm_source")
-  utmMedium     String?  @map("utm_medium")
-  utmCampaign   String?  @map("utm_campaign")
-  utmTerm       String?  @map("utm_term")
-  utmContent    String?  @map("utm_content")
-  metadata      Json     @default("{}")
-  occurredAt    DateTime @default(now()) @map("occurred_at")
+  id          String   @id @default(uuid()) @db.Uuid
+  anonymousId String   @map("anonymous_id")
+  userId      String?  @map("user_id") @db.Uuid
+  workspaceId String?  @map("workspace_id") @db.Uuid
+  eventName   String   @map("event_name")
+  utmSource   String?  @map("utm_source")
+  utmMedium   String?  @map("utm_medium")
+  utmCampaign String?  @map("utm_campaign")
+  utmTerm     String?  @map("utm_term")
+  utmContent  String?  @map("utm_content")
+  metadata    Json     @default("{}")
+  occurredAt  DateTime @default(now()) @map("occurred_at")
 
   user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
 
@@ -363,7 +366,7 @@ model SystemPrompt {
   promptKey      String   @id @map("prompt_key")
   currentVersion Int      @default(1) @map("current_version")
   content        String
-  updatedBy      String?  @map("updated_by")
+  updatedBy      String?  @map("updated_by") @db.Uuid
   updatedAt      DateTime @default(now()) @updatedAt @map("updated_at")
 
   updater  User?                 @relation("PromptUpdatedBy", fields: [updatedBy], references: [id], onDelete: SetNull)
@@ -373,11 +376,11 @@ model SystemPrompt {
 }
 
 model SystemPromptVersion {
-  id        String   @id @default(uuid())
+  id        String   @id @default(uuid()) @db.Uuid
   promptKey String   @map("prompt_key")
   version   Int
   content   String
-  createdBy String?  @map("created_by")
+  createdBy String?  @map("created_by") @db.Uuid
   createdAt DateTime @default(now()) @map("created_at")
 
   prompt  SystemPrompt @relation(fields: [promptKey], references: [promptKey], onDelete: Cascade)
@@ -388,15 +391,15 @@ model SystemPromptVersion {
 }
 
 model HelpArticle {
-  id               String    @id @default(uuid())
-  slug             String    @unique
-  title            String
-  category         String
-  contentMarkdown  String    @map("content_markdown")
-  isPublished      Boolean   @default(false) @map("is_published")
-  createdBy        String?   @map("created_by")
-  createdAt        DateTime  @default(now()) @map("created_at")
-  updatedAt        DateTime  @default(now()) @updatedAt @map("updated_at")
+  id              String   @id @default(uuid()) @db.Uuid
+  slug            String   @unique
+  title           String
+  category        String
+  contentMarkdown String   @map("content_markdown")
+  isPublished     Boolean  @default(false) @map("is_published")
+  createdBy       String?  @map("created_by") @db.Uuid
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @default(now()) @updatedAt @map("updated_at")
 
   creator User? @relation(fields: [createdBy], references: [id], onDelete: SetNull)
 
@@ -404,13 +407,13 @@ model HelpArticle {
 }
 
 model ChangelogEntry {
-  id            String    @id @default(uuid())
-  title         String
-  bodyMarkdown  String    @map("body_markdown")
-  tag           String
-  publishedAt   DateTime? @map("published_at")
-  createdBy     String?   @map("created_by")
-  createdAt     DateTime  @default(now()) @map("created_at")
+  id           String    @id @default(uuid()) @db.Uuid
+  title        String
+  bodyMarkdown String    @map("body_markdown")
+  tag          String
+  publishedAt  DateTime? @map("published_at")
+  createdBy    String?   @map("created_by") @db.Uuid
+  createdAt    DateTime  @default(now()) @map("created_at")
 
   creator User? @relation(fields: [createdBy], references: [id], onDelete: SetNull)
 
@@ -422,14 +425,14 @@ model ChangelogEntry {
 // ============================================================
 
 model AutomationFlow {
-  id          String   @id @default(uuid())
-  workspaceId String   @map("workspace_id")
+  id          String   @id @default(uuid()) @db.Uuid
+  workspaceId String   @map("workspace_id") @db.Uuid
   name        String
   isActive    Boolean  @default(true) @map("is_active")
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @default(now()) @updatedAt @map("updated_at")
 
-  workspace Workspace           @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  workspace Workspace            @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   triggers  AutomationTrigger[]
   steps     AutomationFlowStep[]
   runs      AutomationRun[]
@@ -438,11 +441,11 @@ model AutomationFlow {
 }
 
 model AutomationTrigger {
-  id               String @id @default(uuid())
-  automationFlowId String @map("automation_flow_id")
+  id               String @id @default(uuid()) @db.Uuid
+  automationFlowId String @map("automation_flow_id") @db.Uuid
   triggerType      String @map("trigger_type")
   matchValue       String @map("match_value")
-  socialAccountId  String @map("social_account_id")
+  socialAccountId  String @map("social_account_id") @db.Uuid
 
   flow          AutomationFlow @relation(fields: [automationFlowId], references: [id], onDelete: Cascade)
   socialAccount SocialAccount  @relation(fields: [socialAccountId], references: [id], onDelete: Cascade)
@@ -451,8 +454,8 @@ model AutomationTrigger {
 }
 
 model AutomationFlowStep {
-  id               String @id @default(uuid())
-  automationFlowId String @map("automation_flow_id")
+  id               String @id @default(uuid()) @db.Uuid
+  automationFlowId String @map("automation_flow_id") @db.Uuid
   stepOrder        Int    @map("step_order")
   stepType         String @map("step_type")
   payload          Json   @default("{}")
@@ -464,8 +467,8 @@ model AutomationFlowStep {
 }
 
 model AutomationRun {
-  id               String   @id @default(uuid())
-  automationFlowId String   @map("automation_flow_id")
+  id               String   @id @default(uuid()) @db.Uuid
+  automationFlowId String   @map("automation_flow_id") @db.Uuid
   triggeredBy      String?  @map("triggered_by")
   status           String   @default("completed")
   errorMessage     String?  @map("error_message")
