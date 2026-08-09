@@ -521,7 +521,7 @@ Após todas as tasks completarem:
 | 019 | composicao-frontend | ✅ Concluído* | 3 |
 | 020 | pesquisa-tendencias-api | ✅ Concluído | 4 |
 | 021 | conector-pesquisa-fontes | ✅ Concluído* | 4 |
-| 022 | geracao-copy-claude | ⏳ Pendente | 4 |
+| 022 | geracao-copy-claude | ✅ Concluído* | 4 |
 | 023 | diretor-de-cena | ⏳ Pendente | 4 |
 | 024 | pesquisa-frontend | ⏳ Pendente | 4 |
 | 025 | content-pieces-api | ⏳ Pendente | 5 |
@@ -568,3 +568,5 @@ Status: ⏳ Pendente | 🔄 Executando | ✅ Concluído | ❌ Erro
 \* Task 019: CA-01, CA-02, CA-04 e CA-05 validados ao vivo no navegador (upload direto + preview renderizado em 8.15s, aviso de PDF ao trocar para LinkedIn+carrossel, template trocado preserva a imagem do slide existente — confirmado no banco, aviso de maxLength reativo). CA-03 (Geração com IA) tem o estado de carregamento e o de erro genérico confirmados ao vivo; os sub-estados "imagem aprovada" e "aguardando revisão manual" dependem de `ANTHROPIC_API_KEY`/`FAL_API_KEY` reais (mesma pendência já registrada nos Tasks 017/018). Backend ganhou uma fatia mínima de `content-pieces` (create/get/update/upload-image/render) só com o necessário para este editor funcionar — o CRUD completo é do spec 025.
 
 \* Task 021: CA-02 (log real "nenhuma fonte habilitada") e CA-03 (gate `isEnabled()` do scraping testado diretamente — só ativa com a string exata `"true"`) confirmados ao vivo. CA-04/CA-05 (uma única chamada a Claude, scores sempre preenchidos) validados via testes unitários com mock (`insight-summarizer.service.spec.ts`). CA-01 depende de `META_ADS_LIBRARY_ACCESS_TOKEN` real — pendência nova, já adicionada a `.prd/checklist_acessos_e_delegacao.md` como item opcional.
+
+\* Task 022: CA-03 confirmado ao vivo (400 sem insightId/briefing). CA-01/CA-02/CA-04/CA-05 (estilo distinto por tom de voz, exatamente N slides, variação visivelmente diferente, robustez de parsing) dependem de `ANTHROPIC_API_KEY` real para gerar copy de verdade — mesma pendência dos Tasks 017/018/021. A escolha de usar tool-use (structured output) da Anthropic API em vez de JSON em texto livre já elimina estruturalmente a classe de falha que o CA-05 testa (parsing inconsistente), mas a validação empírica com 10 chamadas reais ainda depende da chave.
