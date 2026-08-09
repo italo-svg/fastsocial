@@ -17,4 +17,6 @@ export const envValidationSchema = Joi.object({
   IMAGE_GEN_REFERENCE_WEIGHT: Joi.number().min(0).max(1).optional(),
   IMAGE_QA_THRESHOLD: Joi.number().min(0).max(10).optional(),
   RENDER_ENGINE_URL: Joi.string().uri().optional(),
+  META_ADS_LIBRARY_ACCESS_TOKEN: Joi.string().optional(),
+  ENABLE_COMPETITOR_SCRAPING: Joi.string().valid("true", "false").optional(),
 }).unknown(true);

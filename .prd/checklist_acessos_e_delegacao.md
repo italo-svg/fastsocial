@@ -62,6 +62,7 @@ A boa notícia: **tudo o que é código, configuração e infraestrutura técnic
 - [ ] Conta na **Anthropic (Claude API)** com billing ativo — para copy, "diretor de cena" e QA de imagem por visão.
 - [ ] Conta em **fal.ai** ou **Replicate** — para geração de imagem (Flux.1), com billing ativo.
 - [ ] (Opcional) Conta na **Unsplash API** ou **Pexels API** — para a fonte "Banco de Imagens".
+- [ ] (Opcional) **Meta Ads Library access token** (token de app da Meta, não o OAuth de usuário do módulo de publicação) — para a fonte de pesquisa de concorrentes (spec 021). Sem ele, o scan roda normalmente mas não produz insights (log registra "sem fontes ativas").
 - **O que você me passa:** as respectivas API keys.
 
 ### 1.8 GitHub

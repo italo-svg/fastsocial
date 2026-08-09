@@ -2,6 +2,11 @@ import { randomUUID } from "node:crypto";
 import { BadRequestException, Injectable, Logger } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
 import { CreateInsightDto } from "./dto/create-insight.dto";
+import { InsightSummarizerService } from "./insight-summarizer.service";
+import { MetaAdsLibrarySource } from "./sources/meta-ads-library.source";
+import { CompetitorScrapingSource } from "./sources/competitor-scraping.source";
+import { HashtagTrendSource } from "./sources/hashtag-trend.source";
+import type { RawSignal, TrendSource } from "./sources/trend-source.interface";
 
 export interface ResearchInsightsQuery {
   consumed?: boolean;
@@ -17,8 +22,17 @@ const MANUAL_INSIGHT_RELEVANCE = 10;
 @Injectable()
 export class ResearchService {
   private readonly logger = new Logger(ResearchService.name);
+  private readonly sources: TrendSource[];
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly insightSummarizer: InsightSummarizerService,
+    metaAdsLibrarySource: MetaAdsLibrarySource,
+    competitorScrapingSource: CompetitorScrapingSource,
+    hashtagTrendSource: HashtagTrendSource,
+  ) {
+    this.sources = [metaAdsLibrarySource, competitorScrapingSource, hashtagTrendSource];
+  }
 
   list(workspaceId: string, query: ResearchInsightsQuery) {
     const page = query.page ?? 1;
@@ -71,12 +85,48 @@ export class ResearchService {
   }
 
   private async runScan(workspaceId: string, scanId: string): Promise<void> {
-    // TODO(spec 021): chamar aqui o conector real de fontes externas (varredura +
-    // resumo por LLM) e persistir os research_insights resultantes. Este metodo
-    // existe por enquanto so' para o fluxo assincrono (202 Accepted) ja funcionar
-    // de ponta a ponta antes do conector real existir.
-    this.logger.log(
-      `Scan ${scanId} iniciado para workspace ${workspaceId} (conector do spec 021 ainda não implementado).`,
-    );
+    const brandKit = await this.prisma.brandKit.findUnique({ where: { workspaceId } });
+    const brandKitContext = {
+      niche: brandKit?.niche ?? null,
+      competitors: ((brandKit?.competitors as string[] | undefined) ?? []).filter(
+        (c) => typeof c === "string" && c.trim().length > 0,
+      ),
+    };
+
+    const enabledSources = this.sources.filter((s) => s.isEnabled());
+    if (enabledSources.length === 0) {
+      this.logger.log(`Scan ${scanId}: nenhuma fonte de pesquisa habilitada — concluído sem novos insights.`);
+      return;
+    }
+
+    const allSignals: RawSignal[] = [];
+    for (const source of enabledSources) {
+      try {
+        allSignals.push(...(await source.fetch(brandKitContext)));
+      } catch (err) {
+        this.logger.warn(`Fonte ${source.sourceName} falhou no scan ${scanId}: ${(err as Error).message}`);
+      }
+    }
+
+    if (allSignals.length === 0) {
+      this.logger.log(`Scan ${scanId}: fontes habilitadas não retornaram sinais — concluído sem novos insights.`);
+      return;
+    }
+
+    const insights = await this.insightSummarizer.summarize(allSignals, brandKitContext.niche);
+    for (const insight of insights) {
+      await this.prisma.researchInsight.create({
+        data: {
+          workspaceId,
+          sourceType: insight.sourceRefs.length > 0 ? "competitor" : "topic_trend",
+          sourceRef: insight.sourceRefs.join(", ") || null,
+          summary: insight.summary,
+          relevanceScore: insight.relevanceScore,
+          suggestedFormat: insight.suggestedFormat,
+        },
+      });
+    }
+
+    this.logger.log(`Scan ${scanId}: ${insights.length} insight(s) criado(s).`);
   }
 }
