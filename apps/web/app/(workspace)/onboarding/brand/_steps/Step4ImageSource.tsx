@@ -24,6 +24,9 @@ const OPTIONS: { value: ImageSource; title: string; description: string }[] = [
 ];
 
 const MAX_REFERENCE_IMAGES = 8;
+const MIN_RECOMMENDED_IMAGES = 3;
+const LOW_IMAGES_WARNING =
+  "Recomendamos ao menos 3 imagens de referência para melhor fidelidade de marca na geração por IA.";
 
 interface Step4ImageSourceProps {
   value: ImageSource;
@@ -121,7 +124,10 @@ export function Step4ImageSource({
             {uploadingRefs ? "Enviando..." : "+ Adicionar imagens de referência"}
           </Button>
 
-          {warnings.map((warning) => (
+          {referenceImages.length < MIN_RECOMMENDED_IMAGES && (
+            <p className="text-sm text-warning">{LOW_IMAGES_WARNING}</p>
+          )}
+          {warnings.filter((w) => w !== LOW_IMAGES_WARNING).map((warning) => (
             <p key={warning} className="text-sm text-warning">
               {warning}
             </p>
