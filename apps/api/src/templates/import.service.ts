@@ -5,7 +5,9 @@ import { join } from "node:path";
 import { promisify } from "node:util";
 import { BadRequestException, Injectable } from "@nestjs/common";
 import type { Prisma } from "@prisma/client";
-import sharp from "sharp";
+// "sharp" usa `export =`; sem esModuleInterop (nao alcancavel aqui, ver nota no
+// Dockerfile sobre o contexto de build ser so apps/api) precisa de import = require.
+import sharp = require("sharp");
 import { PrismaService } from "../prisma/prisma.service";
 import { StorageService } from "../common/services/storage.service";
 import { ImportTemplateDto } from "./dto/import-template.dto";
