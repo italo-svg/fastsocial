@@ -518,7 +518,7 @@ Após todas as tasks completarem:
 | 016 | integracao-banco-imagens | ✅ Concluído* | 3 |
 | 017 | motor-geracao-imagem-ia | ✅ Concluído* | 3 |
 | 018 | qa-visao-imagem-ia | ✅ Concluído* | 3 |
-| 019 | composicao-frontend | ⏳ Pendente | 3 |
+| 019 | composicao-frontend | ✅ Concluído* | 3 |
 | 020 | pesquisa-tendencias-api | ⏳ Pendente | 4 |
 | 021 | conector-pesquisa-fontes | ⏳ Pendente | 4 |
 | 022 | geracao-copy-claude | ⏳ Pendente | 4 |
@@ -564,3 +564,5 @@ Status: ⏳ Pendente | 🔄 Executando | ✅ Concluído | ❌ Erro
 \* Task 017: todos os 6 CAs validados estruturalmente (prompt com as 6 camadas, negative list completa, conditioning com/sem reference_images, attemptNumber, auditoria via GET) usando uma `FAL_API_KEY` fake só para passar do gate de "configurado" — a chamada real ao fal.ai falha (esperado) e o job fica `status='failed'`, mas o `assembled_prompt` completo permanece auditável, que é o que os CAs pedem. `ANTHROPIC_API_KEY` também ausente: as camadas 1 (tone keywords) e 2 (scene brief) caem no fallback determinístico documentado no código, sem quebrar o fluxo. Trocar pelas chaves reais quando o usuário as fornecer (pendência já listada em `.prd/checklist_acessos_e_delegacao.md`).
 
 \* Task 018: sem `ANTHROPIC_API_KEY` real, os 6 CAs foram validados via testes unitários com mocks (`apps/api/src/image-generation/qa-vision.service.spec.ts`, primeira suíte de testes do projeto — `pnpm --filter api test`) cobrindo scores altos/baixos, limite de 3 tentativas, persistência dos scores, e retry limitado em falha de API. CA-06 também confirmado ao vivo via HTTP real (falha graciosamente com `status='qa_failed'` sem trancar o processo). Rodar de novo com a chave real assim que existir para validar os scores de visão de verdade.
+
+\* Task 019: CA-01, CA-02, CA-04 e CA-05 validados ao vivo no navegador (upload direto + preview renderizado em 8.15s, aviso de PDF ao trocar para LinkedIn+carrossel, template trocado preserva a imagem do slide existente — confirmado no banco, aviso de maxLength reativo). CA-03 (Geração com IA) tem o estado de carregamento e o de erro genérico confirmados ao vivo; os sub-estados "imagem aprovada" e "aguardando revisão manual" dependem de `ANTHROPIC_API_KEY`/`FAL_API_KEY` reais (mesma pendência já registrada nos Tasks 017/018). Backend ganhou uma fatia mínima de `content-pieces` (create/get/update/upload-image/render) só com o necessário para este editor funcionar — o CRUD completo é do spec 025.
