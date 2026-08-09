@@ -10,6 +10,7 @@ import { TemplatesModule } from "./templates/templates.module";
 import { ImageSourcesModule } from "./image-sources/image-sources.module";
 import { ImageGenerationModule } from "./image-generation/image-generation.module";
 import { ContentPiecesModule } from "./content-pieces/content-pieces.module";
+import { ResearchModule } from "./research/research.module";
 
 // Módulos de negócio (specs 012 em diante) serão importados aqui conforme forem criados.
 @Module({
@@ -28,6 +29,7 @@ import { ContentPiecesModule } from "./content-pieces/content-pieces.module";
     ImageSourcesModule,
     ImageGenerationModule,
     ContentPiecesModule,
+    ResearchModule,
   ],
 })
 export class AppModule {}
