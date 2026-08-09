@@ -513,7 +513,7 @@ Após todas as tasks completarem:
 | 011 | onboarding-wizard-frontend | ✅ Concluído | 2 |
 | 012 | crud-template-assets-api | ✅ Concluído | 2 |
 | 013 | importador-canva-gamma | ✅ Concluído | 2 |
-| 014 | acervo-templates-frontend | ⏳ Pendente | 2 |
+| 014 | acervo-templates-frontend | ✅ Concluído | 2 |
 | 015 | render-engine-servico | ⏳ Pendente | 3 |
 | 016 | integracao-banco-imagens | ⏳ Pendente | 3 |
 | 017 | motor-geracao-imagem-ia | ⏳ Pendente | 3 |
