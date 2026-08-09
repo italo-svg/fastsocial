@@ -15,6 +15,7 @@ import { WorkspaceGuard } from "../common/guards/workspace.guard";
 import { CurrentWorkspace, CurrentWorkspacePayload } from "../common/decorators/current-workspace.decorator";
 import { ContentPiecesService } from "./content-pieces.service";
 import { CreateContentPieceDto } from "./dto/create-content-piece.dto";
+import { UpdateContentPieceDto } from "./dto/update-content-piece.dto";
 import { UpdateContentSlideDto } from "./dto/update-content-slide.dto";
 import { RenderContentPieceDto } from "./dto/render-content-piece.dto";
 
@@ -34,6 +35,15 @@ export class ContentPiecesController {
   @Get(":id")
   get(@CurrentWorkspace() workspace: CurrentWorkspacePayload, @Param("id") id: string) {
     return this.contentPiecesService.get(workspace.id, id);
+  }
+
+  @Put(":id")
+  updateTemplate(
+    @CurrentWorkspace() workspace: CurrentWorkspacePayload,
+    @Param("id") id: string,
+    @Body() dto: UpdateContentPieceDto,
+  ) {
+    return this.contentPiecesService.updateTemplate(workspace.id, id, dto);
   }
 
   @Put(":id/slides/:slideId")

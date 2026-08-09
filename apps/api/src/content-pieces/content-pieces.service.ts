@@ -3,6 +3,7 @@ import { ConfigService } from "@nestjs/config";
 import { PrismaService } from "../prisma/prisma.service";
 import { StorageService } from "../common/services/storage.service";
 import { CreateContentPieceDto } from "./dto/create-content-piece.dto";
+import { UpdateContentPieceDto } from "./dto/update-content-piece.dto";
 import { UpdateContentSlideDto } from "./dto/update-content-slide.dto";
 import { RenderContentPieceDto } from "./dto/render-content-piece.dto";
 
@@ -51,6 +52,41 @@ export class ContentPiecesService {
     });
     if (!piece) throw new NotFoundException("Peça de conteúdo não encontrada.");
     return piece;
+  }
+
+  // Troca o template de uma peca ja criada SEM recriar os slides existentes — so'
+  // adiciona slides a mais se o novo template exigir mais (nunca remove), para
+  // preservar imagens/copy ja definidos (CA-04, spec 019: trocar template mantem
+  // imagem de IA ja aprovada, so' o layout muda).
+  async updateTemplate(workspaceId: string, id: string, dto: UpdateContentPieceDto) {
+    const piece = await this.prisma.contentPiece.findFirst({
+      where: { id, workspaceId },
+      include: { slides: true },
+    });
+    if (!piece) throw new NotFoundException("Peça de conteúdo não encontrada.");
+
+    const template = await this.prisma.templateAsset.findFirst({
+      where: { id: dto.templateId, deletedAt: null, OR: [{ isSystemTemplate: true }, { workspaceId }] },
+    });
+    if (!template) throw new NotFoundException("Template não encontrado.");
+
+    const zones = (template.slotMap as { zones?: { slideIndex?: number }[] } | null)?.zones ?? [];
+    const slideCount = zones.length > 0 ? Math.max(...zones.map((z) => z.slideIndex ?? 0)) + 1 : 1;
+
+    if (slideCount > piece.slides.length) {
+      await this.prisma.contentSlide.createMany({
+        data: Array.from({ length: slideCount - piece.slides.length }, (_, i) => ({
+          contentPieceId: id,
+          slideOrder: piece.slides.length + i,
+        })),
+      });
+    }
+
+    return this.prisma.contentPiece.update({
+      where: { id },
+      data: { templateId: dto.templateId, format: template.format },
+      include: { slides: { orderBy: { slideOrder: "asc" } }, template: true },
+    });
   }
 
   async updateSlide(workspaceId: string, contentPieceId: string, slideId: string, dto: UpdateContentSlideDto) {
