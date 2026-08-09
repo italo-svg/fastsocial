@@ -519,7 +519,7 @@ Após todas as tasks completarem:
 | 017 | motor-geracao-imagem-ia | ✅ Concluído* | 3 |
 | 018 | qa-visao-imagem-ia | ✅ Concluído* | 3 |
 | 019 | composicao-frontend | ✅ Concluído* | 3 |
-| 020 | pesquisa-tendencias-api | ⏳ Pendente | 4 |
+| 020 | pesquisa-tendencias-api | ✅ Concluído | 4 |
 | 021 | conector-pesquisa-fontes | ⏳ Pendente | 4 |
 | 022 | geracao-copy-claude | ⏳ Pendente | 4 |
 | 023 | diretor-de-cena | ⏳ Pendente | 4 |
