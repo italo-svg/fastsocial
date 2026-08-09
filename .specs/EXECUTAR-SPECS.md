@@ -515,7 +515,7 @@ Após todas as tasks completarem:
 | 013 | importador-canva-gamma | ✅ Concluído | 2 |
 | 014 | acervo-templates-frontend | ✅ Concluído | 2 |
 | 015 | render-engine-servico | ✅ Concluído | 3 |
-| 016 | integracao-banco-imagens | ⏳ Pendente | 3 |
+| 016 | integracao-banco-imagens | ✅ Concluído* | 3 |
 | 017 | motor-geracao-imagem-ia | ⏳ Pendente | 3 |
 | 018 | qa-visao-imagem-ia | ⏳ Pendente | 3 |
 | 019 | composicao-frontend | ⏳ Pendente | 3 |
@@ -558,3 +558,5 @@ Após todas as tasks completarem:
 | 056 | instagram-automation-frontend | ⏳ Pendente | 11 |
 
 Status: ⏳ Pendente | 🔄 Executando | ✅ Concluído | ❌ Erro
+
+\* Task 016: implementado e validado (CA-02 modo gracioso sem chave, CA-04 status) — CA-01/CA-03 (busca real e cache) dependem de `UNSPLASH_ACCESS_KEY`, que o usuário ainda não forneceu (pendência já listada em `.prd/checklist_acessos_e_delegacao.md` como item opcional). Validar assim que a chave existir.
