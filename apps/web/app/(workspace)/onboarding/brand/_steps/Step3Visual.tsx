@@ -148,7 +148,7 @@ export function Step3Visual({
       <div className="space-y-1.5">
         <label className="text-sm font-medium">Tipografia</label>
         <select
-          className="h-10 w-full rounded-lg border border-neutral-200 px-3 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+          className="h-10 w-full rounded-lg border border-neutral-200 bg-white px-3 text-sm text-neutral-900 outline-none focus:border-primary focus:ring-1 focus:ring-primary"
           value={fontFamily}
           onChange={(e) => onFontFamilyChange(e.target.value)}
         >

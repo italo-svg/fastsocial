@@ -21,7 +21,7 @@ export function Step2Voice({ data, onChange }: Step2VoiceProps): JSX.Element {
       <div className="space-y-1.5">
         <label className="text-sm font-medium">Tom de voz</label>
         <textarea
-          className="min-h-24 w-full rounded-lg border border-neutral-200 p-3 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+          className="min-h-24 w-full rounded-lg border border-neutral-200 bg-white p-3 text-sm text-neutral-900 outline-none focus:border-primary focus:ring-1 focus:ring-primary"
           placeholder="Ex: Direto, motivador, sem jargões técnicos, próximo do cliente."
           value={data.toneOfVoice}
           onChange={(e) => onChange({ ...data, toneOfVoice: e.target.value })}
@@ -33,7 +33,7 @@ export function Step2Voice({ data, onChange }: Step2VoiceProps): JSX.Element {
           Cole exemplos de textos já usados pela marca (opcional)
         </label>
         <textarea
-          className="min-h-24 w-full rounded-lg border border-neutral-200 p-3 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+          className="min-h-24 w-full rounded-lg border border-neutral-200 bg-white p-3 text-sm text-neutral-900 outline-none focus:border-primary focus:ring-1 focus:ring-primary"
           placeholder="Cole aqui legendas, e-mails ou textos que representem bem sua marca."
           value={data.examples}
           onChange={(e) => onChange({ ...data, examples: e.target.value })}
