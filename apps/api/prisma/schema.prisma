@@ -20,7 +20,7 @@ datasource db {
 // ============================================================
 
 model Workspace {
-  id        String   @id @default(uuid()) @db.Uuid
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   name      String
   slug      String   @unique
   planType  String   @default("trial") @map("plan_type")
@@ -64,7 +64,7 @@ model User {
 }
 
 model WorkspaceMember {
-  id          String    @id @default(uuid()) @db.Uuid
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   workspaceId String    @map("workspace_id") @db.Uuid
   userId      String    @map("user_id") @db.Uuid
   role        String
@@ -79,7 +79,7 @@ model WorkspaceMember {
 }
 
 model WorkspaceInvite {
-  id          String    @id @default(uuid()) @db.Uuid
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   workspaceId String    @map("workspace_id") @db.Uuid
   email       String
   role        String
@@ -98,7 +98,7 @@ model WorkspaceInvite {
 // ============================================================
 
 model BrandKit {
-  id                 String   @id @default(uuid()) @db.Uuid
+  id                 String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   workspaceId        String   @unique @map("workspace_id") @db.Uuid
   niche              String?
   competitors        Json     @default("[]")
@@ -116,7 +116,7 @@ model BrandKit {
 }
 
 model TemplateAsset {
-  id               String    @id @default(uuid()) @db.Uuid
+  id               String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   workspaceId      String?   @map("workspace_id") @db.Uuid
   source           String    @default("system")
   format           String
@@ -137,7 +137,7 @@ model TemplateAsset {
 // ============================================================
 
 model ResearchInsight {
-  id              String   @id @default(uuid()) @db.Uuid
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   workspaceId     String   @map("workspace_id") @db.Uuid
   sourceType      String   @map("source_type")
   sourceRef       String?  @map("source_ref")
@@ -154,7 +154,7 @@ model ResearchInsight {
 }
 
 model ContentPiece {
-  id              String   @id @default(uuid()) @db.Uuid
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   workspaceId     String   @map("workspace_id") @db.Uuid
   insightId       String?  @map("insight_id") @db.Uuid
   templateId      String?  @map("template_id") @db.Uuid
@@ -179,7 +179,7 @@ model ContentPiece {
 }
 
 model ContentSlide {
-  id                 String   @id @default(uuid()) @db.Uuid
+  id                 String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   contentPieceId     String   @map("content_piece_id") @db.Uuid
   slideOrder         Int      @map("slide_order")
   slideText          String?  @map("slide_text")
@@ -196,7 +196,7 @@ model ContentSlide {
 }
 
 model ImageGenerationJob {
-  id                   String   @id @default(uuid()) @db.Uuid
+  id                   String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   contentSlideId       String   @map("content_slide_id") @db.Uuid
   assembledPrompt      String   @map("assembled_prompt")
   modelProvider        String   @map("model_provider")
@@ -219,7 +219,7 @@ model ImageGenerationJob {
 // ============================================================
 
 model SocialAccount {
-  id                    String    @id @default(uuid()) @db.Uuid
+  id                    String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   workspaceId           String    @map("workspace_id") @db.Uuid
   network               String
   externalAccountId     String    @map("external_account_id")
@@ -239,7 +239,7 @@ model SocialAccount {
 }
 
 model Publication {
-  id                String    @id @default(uuid()) @db.Uuid
+  id                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   contentPieceId    String    @map("content_piece_id") @db.Uuid
   socialAccountId   String    @map("social_account_id") @db.Uuid
   postizReferenceId String?   @map("postiz_reference_id")
@@ -257,7 +257,7 @@ model Publication {
 }
 
 model AnalyticsSnapshot {
-  id            String   @id @default(uuid()) @db.Uuid
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   publicationId String   @map("publication_id") @db.Uuid
   reach         Int      @default(0)
   impressions   Int      @default(0)
@@ -277,7 +277,7 @@ model AnalyticsSnapshot {
 // ============================================================
 
 model AutopilotPipeline {
-  id               String    @id @default(uuid()) @db.Uuid
+  id               String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   workspaceId      String    @unique @map("workspace_id") @db.Uuid
   isActive         Boolean   @default(false) @map("is_active")
   postsPerWeek     Int       @default(3) @map("posts_per_week")
@@ -294,7 +294,7 @@ model AutopilotPipeline {
 }
 
 model Subscription {
-  id                String    @id @default(uuid()) @db.Uuid
+  id                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   workspaceId       String    @unique @map("workspace_id") @db.Uuid
   planType          String    @default("trial") @map("plan_type")
   maxSocialAccounts Int       @default(1) @map("max_social_accounts")
@@ -310,7 +310,7 @@ model Subscription {
 }
 
 model WorkspaceAddon {
-  id                       String   @id @default(uuid()) @db.Uuid
+  id                       String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   workspaceId              String   @map("workspace_id") @db.Uuid
   addonKey                 String   @map("addon_key")
   status                   String   @default("active")
@@ -324,7 +324,7 @@ model WorkspaceAddon {
 }
 
 model AuditLog {
-  id          String   @id @default(uuid()) @db.Uuid
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   workspaceId String?  @map("workspace_id") @db.Uuid
   userId      String?  @map("user_id") @db.Uuid
   action      String
@@ -344,7 +344,7 @@ model AuditLog {
 // ============================================================
 
 model FunnelEvent {
-  id          String   @id @default(uuid()) @db.Uuid
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   anonymousId String   @map("anonymous_id")
   userId      String?  @map("user_id") @db.Uuid
   workspaceId String?  @map("workspace_id") @db.Uuid
@@ -376,7 +376,7 @@ model SystemPrompt {
 }
 
 model SystemPromptVersion {
-  id        String   @id @default(uuid()) @db.Uuid
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   promptKey String   @map("prompt_key")
   version   Int
   content   String
@@ -391,7 +391,7 @@ model SystemPromptVersion {
 }
 
 model HelpArticle {
-  id              String   @id @default(uuid()) @db.Uuid
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   slug            String   @unique
   title           String
   category        String
@@ -407,7 +407,7 @@ model HelpArticle {
 }
 
 model ChangelogEntry {
-  id           String    @id @default(uuid()) @db.Uuid
+  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   title        String
   bodyMarkdown String    @map("body_markdown")
   tag          String
@@ -425,7 +425,7 @@ model ChangelogEntry {
 // ============================================================
 
 model AutomationFlow {
-  id          String   @id @default(uuid()) @db.Uuid
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   workspaceId String   @map("workspace_id") @db.Uuid
   name        String
   isActive    Boolean  @default(true) @map("is_active")
@@ -441,7 +441,7 @@ model AutomationFlow {
 }
 
 model AutomationTrigger {
-  id               String @id @default(uuid()) @db.Uuid
+  id               String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   automationFlowId String @map("automation_flow_id") @db.Uuid
   triggerType      String @map("trigger_type")
   matchValue       String @map("match_value")
@@ -454,7 +454,7 @@ model AutomationTrigger {
 }
 
 model AutomationFlowStep {
-  id               String @id @default(uuid()) @db.Uuid
+  id               String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   automationFlowId String @map("automation_flow_id") @db.Uuid
   stepOrder        Int    @map("step_order")
   stepType         String @map("step_type")
@@ -467,7 +467,7 @@ model AutomationFlowStep {
 }
 
 model AutomationRun {
-  id               String   @id @default(uuid()) @db.Uuid
+  id               String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   automationFlowId String   @map("automation_flow_id") @db.Uuid
   triggeredBy      String?  @map("triggered_by")
   status           String   @default("completed")
