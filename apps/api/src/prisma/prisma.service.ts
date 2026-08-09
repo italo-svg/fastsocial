@@ -6,8 +6,15 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
   private readonly logger = new Logger(PrismaService.name);
 
   async onModuleInit(): Promise<void> {
-    await this.$connect();
-    this.logger.log("Conectado ao Postgres (Supabase self-hosted).");
+    // Nao deixar falha de conexao no boot derrubar a aplicacao inteira -
+    // o health check (GET /api/v1/health) e quem deve reportar o banco
+    // como indisponivel; a API continua de pe para outras rotas/diagnostico.
+    try {
+      await this.$connect();
+      this.logger.log("Conectado ao Postgres (Supabase self-hosted).");
+    } catch (error) {
+      this.logger.error("Falha ao conectar ao Postgres no boot — API sobe mesmo assim.", error as Error);
+    }
   }
 
   async onModuleDestroy(): Promise<void> {
