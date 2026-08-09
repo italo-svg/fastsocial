@@ -525,7 +525,7 @@ Após todas as tasks completarem:
 | 023 | diretor-de-cena | ✅ Concluído* | 4 |
 | 024 | pesquisa-frontend | ✅ Concluído | 4 |
 | 025 | content-pieces-api | ✅ Concluído | 5 |
-| 026 | fila-aprovacao-frontend | ⏳ Pendente | 5 |
+| 026 | fila-aprovacao-frontend | ✅ Concluído | 5 |
 | 027 | postiz-selfhosted-deploy | ⏳ Pendente | 6 |
 | 028 | meta-oauth-bridge | ⏳ Pendente | 6 |
 | 029 | linkedin-oauth-bridge | ⏳ Pendente | 6 |
