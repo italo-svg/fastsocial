@@ -89,12 +89,21 @@ export class WorkspacesService {
     const appBaseUrl = this.config.getOrThrow<string>("APP_BASE_URL");
     const acceptUrl = `${appBaseUrl}/invites/${token}`;
 
-    const inviteResult = await this.supabaseAdmin.inviteUserByEmail(dto.email, {
-      redirectTo: acceptUrl,
-      data: { workspace_invite_token: token, workspace_name: workspace.name },
-    });
-
-    if ("alreadyExists" in inviteResult) {
+    // O convite em si (linha em workspace_invites, acima) já está persistido e o token
+    // é válido nesse ponto — a notificação por e-mail é best-effort: nunca falhar a
+    // criação do convite por causa de e-mail (ex: GoTrue sem SMTP real configurado
+    // ainda, ver infra/supabase/README.md "Pendência conhecida: SMTP"). Se o envio via
+    // GoTrue falhar por qualquer motivo (já existe conta, sem SMTP, etc.), cai para o
+    // EmailService genérico, que por sua vez também nunca lança (modo mock se preciso).
+    try {
+      const inviteResult = await this.supabaseAdmin.inviteUserByEmail(dto.email, {
+        redirectTo: acceptUrl,
+        data: { workspace_invite_token: token, workspace_name: workspace.name },
+      });
+      if ("alreadyExists" in inviteResult) {
+        throw new Error("already exists — fallback to direct link email");
+      }
+    } catch {
       await this.emailService.send({
         to: dto.email,
         subject: `Convite para o workspace ${workspace.name}`,
