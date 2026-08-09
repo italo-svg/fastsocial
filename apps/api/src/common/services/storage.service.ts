@@ -31,7 +31,7 @@ export class StorageService {
     const res = await fetch(`${this.baseUrl}/storage/v1/object/${bucket}/${path}`, {
       method: "POST",
       headers: { ...this.headers(contentType), "x-upsert": "true" },
-      body: file,
+      body: new Uint8Array(file),
     });
 
     if (!res.ok) {
