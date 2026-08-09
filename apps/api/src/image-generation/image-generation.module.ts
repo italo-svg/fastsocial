@@ -6,9 +6,17 @@ import { FalFluxProvider } from "./providers/fal-flux.provider";
 import { AnthropicService } from "../common/services/anthropic.service";
 import { QaVisionController } from "./qa-vision.controller";
 import { QaVisionService } from "./qa-vision.service";
+import { SceneDirectorService } from "./scene-director.service";
 
 @Module({
   controllers: [ImageGenerationController, QaVisionController],
-  providers: [ImageGenerationService, PromptBuilderService, FalFluxProvider, AnthropicService, QaVisionService],
+  providers: [
+    ImageGenerationService,
+    PromptBuilderService,
+    SceneDirectorService,
+    FalFluxProvider,
+    AnthropicService,
+    QaVisionService,
+  ],
 })
 export class ImageGenerationModule {}
