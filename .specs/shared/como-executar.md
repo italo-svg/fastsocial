@@ -93,11 +93,12 @@ POSTIZ_API_URL=http://volupia_postiz:3000
 # workspaces.postiz_api_key, não numa env var global.
 POSTIZ_DATABASE_URL=postgresql://postgres:<senha>@volupia_postiz-db:5432/volupia
 
-# n8n (self-hosted, já existente neste VPS)
-N8N_API_URL=http://n8n:5678
-N8N_API_KEY=
+# n8n (self-hosted, já existente neste VPS — container real: volupia_n8n,
+# rede easypanel; reusado pelo FastSocial, spec 032 — ver infra/n8n/README.md)
+N8N_API_URL=http://volupia_n8n:5678
+N8N_API_KEY=          # gerar pela UI do n8n (Configurações -> n8n API) — nao geramos por escrita direta no SQLite dele
 N8N_WEBHOOK_SECRET=
-N8N_SERVICE_TOKEN=
+N8N_SERVICE_TOKEN=    # openssl rand -hex 32 — segredo nosso, usado pelo n8n para chamar de volta nossa API
 
 # Stripe (planos + add-ons, ver Módulo 12/19)
 STRIPE_SECRET_KEY=
