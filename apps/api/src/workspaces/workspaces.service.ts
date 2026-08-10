@@ -16,7 +16,7 @@ import { InviteMemberDto } from "./dto/invite-member.dto";
 const ADMIN_ROLES = ["workspace_admin", "super_admin"];
 const INVITE_EXPIRY_DAYS = 7;
 
-function slugify(name: string): string {
+export function slugify(name: string): string {
   return name
     .toLowerCase()
     .normalize("NFD")

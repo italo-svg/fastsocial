@@ -8,5 +8,6 @@ import { AuthModule } from "../auth/auth.module";
   imports: [AuthModule], // reusa SupabaseAdminService exportado pelo AuthModule
   controllers: [WorkspacesController],
   providers: [WorkspacesService, EmailService],
+  exports: [WorkspacesService],
 })
 export class WorkspacesModule {}

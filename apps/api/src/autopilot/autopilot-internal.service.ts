@@ -50,6 +50,11 @@ export class AutopilotInternalService {
     const due = await this.prisma.autopilotPipeline.findMany({
       where: {
         isActive: true,
+        // CA-03 (spec 041): workspace suspenso para de ser processado pelo
+        // autopilot na próxima rodada — filtrado aqui, na mesma consulta que
+        // já decide quem está "due", em vez de checar suspensão em cada
+        // endpoint interno individualmente que o workflow chama depois.
+        workspace: { status: "active" },
         OR: [{ lastRunAt: null }, { lastRunAt: { lt: cutoff } }],
       },
       select: { id: true, workspaceId: true },

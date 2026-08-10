@@ -34,6 +34,11 @@ export class WorkspaceGuard implements CanActivate {
       });
 
       if (membership) {
+        // CA-03 (spec 041): workspace suspenso bloqueia membros comuns, mas
+        // não o platform super admin (precisa poder investigar/reativar).
+        if (!user.isPlatformSuperAdmin) {
+          await this.assertWorkspaceActive(requestedWorkspaceId);
+        }
         request.workspaceId = requestedWorkspaceId;
         request.workspaceRole = membership.role;
         return true;
@@ -52,6 +57,9 @@ export class WorkspaceGuard implements CanActivate {
     // Sem header: resolve automaticamente só se o usuário tiver exatamente 1 workspace.
     const memberships = await this.prisma.workspaceMember.findMany({ where: { userId: user.id } });
     if (memberships.length === 1) {
+      if (!user.isPlatformSuperAdmin) {
+        await this.assertWorkspaceActive(memberships[0]!.workspaceId);
+      }
       request.workspaceId = memberships[0]!.workspaceId;
       request.workspaceRole = memberships[0]!.role;
       return true;
@@ -60,5 +68,12 @@ export class WorkspaceGuard implements CanActivate {
     throw new BadRequestException(
       "Cabeçalho X-Workspace-Id é obrigatório (usuário pertence a 0 ou múltiplos workspaces).",
     );
+  }
+
+  private async assertWorkspaceActive(workspaceId: string): Promise<void> {
+    const workspace = await this.prisma.workspace.findUnique({ where: { id: workspaceId } });
+    if (workspace?.status === "suspended") {
+      throw new ForbiddenException("Workspace suspenso — contate o suporte.");
+    }
   }
 }

@@ -2,7 +2,7 @@ import { Injectable, NotFoundException } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
 
 export interface AuthMeResponse {
-  user: { id: string; email: string; name: string };
+  user: { id: string; email: string; name: string; isPlatformSuperAdmin: boolean };
   workspaces: { id: string; name: string; role: string }[];
 }
 
@@ -26,7 +26,7 @@ export class AuthService {
     });
 
     return {
-      user: { id: user.id, email: user.email, name: user.name },
+      user: { id: user.id, email: user.email, name: user.name, isPlatformSuperAdmin: user.isPlatformSuperAdmin },
       workspaces: memberships.map((m) => ({
         id: m.workspace.id,
         name: m.workspace.name,
@@ -39,7 +39,7 @@ export class AuthService {
     userId: string,
     attempts = 2,
     delayMs = 200,
-  ): Promise<{ id: string; email: string; name: string } | null> {
+  ): Promise<{ id: string; email: string; name: string; isPlatformSuperAdmin: boolean } | null> {
     for (let i = 0; i < attempts; i++) {
       const user = await this.prisma.user.findUnique({ where: { id: userId } });
       if (user) return user;

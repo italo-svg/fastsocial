@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/api-client";
 
 export interface AuthMeResponse {
-  user: { id: string; email: string; name: string };
+  user: { id: string; email: string; name: string; isPlatformSuperAdmin: boolean };
   workspaces: { id: string; name: string; role: string }[];
 }
 
