@@ -2,6 +2,7 @@ import { NestFactory } from "@nestjs/core";
 import { ValidationPipe } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { AppModule } from "./app.module";
+import { BullBoardService } from "./queue/bull-board.service";
 
 async function bootstrap(): Promise<void> {
   // rawBody: true (spec 040) — preserva o corpo bruto em request.rawBody,
@@ -17,6 +18,8 @@ async function bootstrap(): Promise<void> {
     origin: config.get<string>("APP_BASE_URL"),
     credentials: true,
   });
+
+  app.get(BullBoardService).mount(app);
 
   const port = config.get<number>("PORT") ?? 3333;
   await app.listen(port, "0.0.0.0");

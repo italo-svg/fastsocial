@@ -1,0 +1,93 @@
+# Observabilidade (spec 044) — GlitchTip (error tracking) + Dozzle (logs).
+# GlitchTip tem SEU PRÓPRIO Postgres/Redis, isolados do produto (mesma lógica
+# de isolamento já aplicada ao Postiz/n8n nos specs 027/032) — nunca reusar o
+# Postgres do Supabase self-hospedado pra isso.
+#
+# Bull Board (terceira ferramenta do spec) NÃO entra aqui: é montado como
+# sub-rota dentro da própria API (apps/api/src/queue/bull-board.module.ts),
+# não é um serviço separado.
+
+name: fastsocial-observability
+
+networks:
+  easypanel:
+    external: true
+
+volumes:
+  glitchtip-postgres-data:
+  glitchtip-redis-data:
+  glitchtip-uploads:
+
+services:
+  glitchtip-postgres:
+    image: postgres:15
+    container_name: glitchtip-postgres
+    restart: always
+    networks:
+      - easypanel
+    environment:
+      POSTGRES_DB: glitchtip
+      POSTGRES_PASSWORD: ${GLITCHTIP_DB_PASSWORD}
+    volumes:
+      - glitchtip-postgres-data:/var/lib/postgresql/data
+
+  glitchtip-redis:
+    image: redis:7-alpine
+    container_name: glitchtip-redis
+    restart: always
+    networks:
+      - easypanel
+    volumes:
+      - glitchtip-redis-data:/data
+
+  glitchtip-migrate:
+    image: glitchtip/glitchtip:latest
+    container_name: glitchtip-migrate
+    networks:
+      - easypanel
+    environment: &glitchtip-env
+      DATABASE_URL: postgres://postgres:${GLITCHTIP_DB_PASSWORD}@glitchtip-postgres:5432/glitchtip
+      REDIS_URL: redis://glitchtip-redis:6379/0
+      SECRET_KEY: ${GLITCHTIP_SECRET_KEY}
+      GLITCHTIP_DOMAIN: https://glitchtip.fastsocial.volupia.cloud
+      DEFAULT_FROM_EMAIL: noreply@fastsocial.volupia.cloud
+      CELERY_WORKER_AUTOSCALE: "1,1"
+      ENABLE_OPEN_USER_REGISTRATION: "false"
+    command: ./manage.py migrate
+    depends_on:
+      - glitchtip-postgres
+      - glitchtip-redis
+    restart: "no"
+
+  glitchtip-web:
+    image: glitchtip/glitchtip:latest
+    container_name: glitchtip-web
+    restart: always
+    networks:
+      - easypanel
+    environment: *glitchtip-env
+    depends_on:
+      - glitchtip-migrate
+
+  glitchtip-worker:
+    image: glitchtip/glitchtip:latest
+    container_name: glitchtip-worker
+    restart: always
+    networks:
+      - easypanel
+    environment: *glitchtip-env
+    command: ./bin/run-celery-with-beat.sh
+    depends_on:
+      - glitchtip-migrate
+
+  dozzle:
+    image: amir20/dozzle:latest
+    container_name: fastsocial-dozzle
+    restart: always
+    networks:
+      - easypanel
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    # Autenticação real fica no Traefik (basicAuth middleware,
+    # infra/traefik/dynamic-observability.yml) — Dozzle roda sem senha própria
+    # aqui de propósito, nunca exposto direto na porta sem passar pelo Traefik.

@@ -1,0 +1,43 @@
+# Rotas do Traefik para GlitchTip e Dozzle (spec 044) — arquivo ADITIVO,
+# separado de /etc/easypanel/traefik/config/fastsocial.yaml (specs 004-043),
+# nunca edita/remove as rotas existentes lá. Mesmo provider de arquivo
+# estático, mesmo resolver Let's Encrypt ("letsencrypt") já configurado.
+#
+# Dozzle expõe logs de TODO o sistema — nunca sem autenticação. Usuário/senha
+# reais gerados durante o spec 044, hash bcrypt abaixo (senha em texto puro
+# NUNCA fica neste arquivo nem em nenhum lugar versionado — ver
+# infra/README-PRODUCAO.md / comunicado ao usuário para a senha real).
+http:
+  routers:
+    fastsocial-glitchtip:
+      rule: "Host(`glitchtip.fastsocial.volupia.cloud`)"
+      entryPoints:
+        - https
+      service: fastsocial-glitchtip-svc
+      tls:
+        certResolver: letsencrypt
+    fastsocial-logs:
+      rule: "Host(`logs.fastsocial.volupia.cloud`)"
+      entryPoints:
+        - https
+      service: fastsocial-dozzle-svc
+      middlewares:
+        - fastsocial-logs-auth
+      tls:
+        certResolver: letsencrypt
+
+  middlewares:
+    fastsocial-logs-auth:
+      basicAuth:
+        users:
+          - "dozzle-admin:$2y$05$dg7iidMXXpmkhGiGyrEJzO4STBsCIUUNGhd8dgwnhKP9cTbIh5NtK"
+
+  services:
+    fastsocial-glitchtip-svc:
+      loadBalancer:
+        servers:
+          - url: "http://glitchtip-web:8000"
+    fastsocial-dozzle-svc:
+      loadBalancer:
+        servers:
+          - url: "http://fastsocial-dozzle:8080"
