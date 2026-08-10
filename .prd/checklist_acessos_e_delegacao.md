@@ -63,6 +63,20 @@ A boa notícia: **tudo o que é código, configuração e infraestrutura técnic
 > cliente nesse fluxo exige alguém com acesso ao Postiz agindo por trás — o
 > que ainda não cumpre o requisito de "cliente nunca vê o Postiz" para esse
 > caso específico.
+>
+> **Atualização (spec 032, 2026-08-09):** o n8n que já roda no mesmo VPS
+> (`volupia_n8n`) também foi reusado, mesmo racional do Postiz (ver
+> `infra/n8n/README.md`). Diferente do Postiz, **não** geramos a API key do
+> n8n por escrita direta no banco dele — o n8n usa SQLite de arquivo único
+> (não Postgres), e mexer nesse arquivo por fora enquanto o processo está
+> servindo os workflows reais da agência arrisca corromper algo que já está
+> em uso, diferente de abrir uma nova conexão num Postgres. Novo item:
+> - [ ] **API key do n8n existente** — gerada por você em Configurações →
+>   n8n API → Create an API key, dentro da sua conta n8n já em uso
+>   (`https://volupia-n8n.bqvgyf.easypanel.host`). Só é necessária para a
+>   nossa API controlar o n8n programaticamente (ligar/desligar workflow do
+>   autopilot, specs 036/037) — o caminho inverso (n8n chamando nossa API)
+>   já funciona hoje com um token gerado por nós mesmos (`N8N_SERVICE_TOKEN`).
 
 ### 1.3 Stripe (billing)
 - [ ] Criar conta em [stripe.com](https://stripe.com) com CNPJ da empresa.
