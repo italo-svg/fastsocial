@@ -17,5 +17,6 @@ import { HashtagTrendSource } from "./sources/hashtag-trend.source";
     CompetitorScrapingSource,
     HashtagTrendSource,
   ],
+  exports: [ResearchService],
 })
 export class ResearchModule {}

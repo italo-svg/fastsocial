@@ -10,6 +10,6 @@ import { SupabaseAdminService } from "../common/services/supabase-admin.service"
   imports: [PassportModule],
   controllers: [AuthController],
   providers: [AuthService, SupabaseJwtStrategy, ServiceTokenStrategy, SupabaseAdminService],
-  exports: [SupabaseAdminService],
+  exports: [SupabaseAdminService, ServiceTokenStrategy],
 })
 export class AuthModule {}

@@ -1,0 +1,118 @@
+{
+  "name": "FastSocial - Pesquisa Recorrente (Autopilot)",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 6 * * *"
+            }
+          ]
+        }
+      },
+      "id": "trigger-cron-diario",
+      "name": "Cron Diário 06:00",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "http://fastsocial-api-prod:3333/api/v1/internal/autopilot/active-workspaces",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "id": "http-active-workspaces",
+      "name": "Buscar Workspaces Ativos",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [460, 300],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "fastsocial-service-token",
+          "name": "FastSocial Service Token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "batchSize": 1,
+        "options": {}
+      },
+      "id": "loop-workspaces",
+      "name": "Loop Workspaces",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://fastsocial-api-prod:3333/api/v1/internal/autopilot/research-scan",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "workspaceId",
+              "value": "={{$json.workspaceId}}"
+            }
+          ]
+        },
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "id": "http-research-scan",
+      "name": "Disparar Scan de Pesquisa",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [900, 200],
+      "continueOnFail": true,
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "fastsocial-service-token",
+          "name": "FastSocial Service Token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "amount": 3
+      },
+      "id": "wait-entre-workspaces",
+      "name": "Aguardar (rate limit)",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [1120, 200]
+    }
+  ],
+  "connections": {
+    "Cron Diário 06:00": {
+      "main": [[{ "node": "Buscar Workspaces Ativos", "type": "main", "index": 0 }]]
+    },
+    "Buscar Workspaces Ativos": {
+      "main": [[{ "node": "Loop Workspaces", "type": "main", "index": 0 }]]
+    },
+    "Loop Workspaces": {
+      "main": [
+        [{ "node": "Disparar Scan de Pesquisa", "type": "main", "index": 0 }],
+        []
+      ]
+    },
+    "Disparar Scan de Pesquisa": {
+      "main": [[{ "node": "Aguardar (rate limit)", "type": "main", "index": 0 }]]
+    },
+    "Aguardar (rate limit)": {
+      "main": [[{ "node": "Loop Workspaces", "type": "main", "index": 0 }]]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {}
+}

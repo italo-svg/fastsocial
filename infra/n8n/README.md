@@ -59,9 +59,13 @@ dela — todos giram em torno do caminho inverso (n8n → nossa API), que usa o
 Diferente da API key do n8n, o `N8N_SERVICE_TOKEN` é um segredo **nosso**
 (não depende de nada dentro do n8n) usado pelos workflows para chamar de
 volta a nossa API. Implementado em
-`apps/api/src/auth/strategies/service-token.strategy.ts` como uma Passport
-strategy separada da `SupabaseJwtStrategy` — comparação em tempo constante
-(`crypto.timingSafeEqual`) contra o header `Authorization: Bearer <token>`.
+`apps/api/src/auth/strategies/service-token.strategy.ts` +
+`apps/api/src/auth/guards/service-token.guard.ts` como um guard simples
+(`CanActivate`, mesmo padrão de `WorkspaceGuard`/`RolesGuard` já usado no
+projeto — não uma Passport strategy: `passport-custom` foi tentado primeiro,
+mas bundla tipos de `@types/express` incompatíveis com a versão do projeto,
+erro de build real). Comparação em tempo constante (`crypto.timingSafeEqual`)
+contra o header `Authorization: Bearer <token>`.
 
 Validado ao vivo (ver `.specs/EXECUTAR-SPECS.md`, nota do Task 032) contra
 `GET /api/v1/auth/service-ping`, endpoint de diagnóstico criado no mesmo
@@ -80,7 +84,47 @@ espírito do `GET /api/v1/auth/me/workspace-context` do spec `007`.
 4. Isso finaliza a validação manual de CA-02 que não pôde ser automatizada
    nesta sessão sem login pessoal no n8n.
 
+## Workflow de Pesquisa Recorrente (spec 033)
+
+`infra/n8n-workflows/research-pipeline.json` — workflow versionado com:
+Cron diário (06:00) → `GET /internal/autopilot/active-workspaces` → loop
+(Split In Batches) → `POST /internal/autopilot/research-scan` por workspace
+(com `continueOnFail: true`, para CA-05: falha num workspace não trava os
+demais) → Wait de 3s entre workspaces → volta pro loop.
+
+A URL da API está **hardcoded** como `http://fastsocial-api-prod:3333`
+(nome do container real desta fase ad-hoc pré-spec-043 — ver
+`infra/DEPLOYMENT-ATUAL.md`) em vez de usar `$env.FASTSOCIAL_API_URL`, para
+não precisar adicionar uma env var nova no container do n8n e reiniciá-lo —
+reiniciar um serviço compartilhado que já está em uso ativo pela agência
+para outros workflows é uma ação com efeito colateral maior do que subir um
+container novo, e não era necessária aqui. Se o nome do container mudar no
+spec `043`, atualizar a URL neste JSON.
+
+Os dois nós HTTP Request referenciam uma credencial nomeada
+`FastSocial Service Token` (tipo "Header Auth", header `Authorization`,
+valor `Bearer <N8N_SERVICE_TOKEN>`) — precisa ser criada uma vez dentro do
+n8n antes de importar o workflow (Credentials → New → Header Auth).
+
+### Como importar (quando a N8N_API_KEY existir)
+
+1. Acessar `https://volupia-n8n.bqvgyf.easypanel.host` com o login existente
+   da agência.
+2. Credentials → New → "Header Auth" → nome `FastSocial Service Token`,
+   header `Authorization`, valor `Bearer <N8N_SERVICE_TOKEN real>`.
+3. Import from File → `infra/n8n-workflows/research-pipeline.json`.
+4. Vincular a credencial criada no passo 2 aos dois nós HTTP Request (o
+   import não traz o valor da credencial, só a referência).
+5. Ativar o workflow (toggle "Active").
+6. CA-01/CA-04 (execução manual e agendada de verdade) ficam pendentes deste
+   passo manual — CA-02/CA-03/CA-05 (a lógica dos endpoints em si) já estão
+   implementados e validados via `curl` direto contra a API, ver
+   `.specs/EXECUTAR-SPECS.md`.
+
 ## Pendências
 
 - [ ] `N8N_API_KEY` — gerada pelo usuário na própria conta do n8n já em uso
   (Configurações → n8n API), pelos motivos de segurança explicados acima.
+- [ ] Importar `infra/n8n-workflows/research-pipeline.json` manualmente (não
+  pôde ser automatizado sem a `N8N_API_KEY` acima) — passo a passo na seção
+  anterior.

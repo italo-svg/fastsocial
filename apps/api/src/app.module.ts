@@ -16,6 +16,7 @@ import { ResearchModule } from "./research/research.module";
 import { CopyGenerationModule } from "./copy-generation/copy-generation.module";
 import { SocialAccountsModule } from "./social-accounts/social-accounts.module";
 import { PublicationsModule } from "./publications/publications.module";
+import { AutopilotModule } from "./autopilot/autopilot.module";
 
 // Módulos de negócio (specs 012 em diante) serão importados aqui conforme forem criados.
 @Module({
@@ -45,6 +46,7 @@ import { PublicationsModule } from "./publications/publications.module";
     CopyGenerationModule,
     SocialAccountsModule,
     PublicationsModule,
+    AutopilotModule,
   ],
 })
 export class AppModule {}
