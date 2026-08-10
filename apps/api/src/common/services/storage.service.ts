@@ -45,6 +45,21 @@ export class StorageService {
     return `${this.baseUrl}/storage/v1/object/public/${bucket}/${path}`;
   }
 
+  // Para buckets privados (ex: data-exports, spec 042) — nunca expor via
+  // getPublicUrl, que assume o bucket como público.
+  async getSignedUrl(bucket: string, path: string, expiresInSeconds: number): Promise<string> {
+    const res = await fetch(`${this.baseUrl}/storage/v1/object/sign/${bucket}/${path}`, {
+      method: "POST",
+      headers: this.headers("application/json"),
+      body: JSON.stringify({ expiresIn: expiresInSeconds }),
+    });
+    if (!res.ok) {
+      throw new Error(`Falha ao assinar URL no Storage: ${res.status} ${await res.text()}`);
+    }
+    const body = (await res.json()) as { signedURL: string };
+    return `${this.baseUrl}/storage/v1${body.signedURL}`;
+  }
+
   async delete(bucket: string, path: string): Promise<void> {
     const res = await fetch(`${this.baseUrl}/storage/v1/object/${bucket}/${path}`, {
       method: "DELETE",

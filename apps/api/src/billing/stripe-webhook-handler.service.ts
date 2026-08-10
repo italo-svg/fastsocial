@@ -1,6 +1,7 @@
 import { Injectable, Logger } from "@nestjs/common";
 import type Stripe from "stripe";
 import { PrismaService } from "../prisma/prisma.service";
+import { AuditLogService } from "../common/services/audit-log.service";
 import { BillingService, TRIAL_LIMITS } from "./billing.service";
 
 @Injectable()
@@ -10,6 +11,7 @@ export class StripeWebhookHandlerService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly billingService: BillingService,
+    private readonly auditLog: AuditLogService,
   ) {}
 
   async handle(event: Stripe.Event): Promise<void> {
@@ -60,6 +62,15 @@ export class StripeWebhookHandlerService {
       },
     });
     this.logger.log(`Workspace ${workspaceId} assinou o plano "${plan.key}" via Checkout ${session.id}.`);
+
+    // CA-01 (spec 042): mudança de plano auditada. Sem userId — quem "agiu"
+    // aqui foi o webhook assíncrono do Stripe, não uma requisição autenticada.
+    await this.auditLog.record({
+      workspaceId,
+      action: "billing_plan_changed",
+      entityType: "subscription",
+      metadata: { planKey: plan.key, stripeSessionId: session.id },
+    });
   }
 
   private async findWorkspaceIdByCustomer(customerId: string): Promise<string | null> {

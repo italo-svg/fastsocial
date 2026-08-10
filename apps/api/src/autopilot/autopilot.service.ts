@@ -1,6 +1,7 @@
 import { BadRequestException, Injectable } from "@nestjs/common";
 import type { Prisma } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
+import { AuditLogService } from "../common/services/audit-log.service";
 import { UpdateAutopilotDto } from "./dto/update-autopilot.dto";
 
 const MAX_POSTS_PER_WEEK_WITHOUT_WARNING = 14;
@@ -19,7 +20,10 @@ export interface AutopilotResponse {
 
 @Injectable()
 export class AutopilotService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly auditLog: AuditLogService,
+  ) {}
 
   async get(workspaceId: string): Promise<AutopilotResponse | null> {
     const pipeline = await this.prisma.autopilotPipeline.findUnique({ where: { workspaceId } });
@@ -28,7 +32,7 @@ export class AutopilotService {
   }
 
   // CA-01: formatMix precisa somar 1.0 — recusado antes de qualquer escrita.
-  async upsert(workspaceId: string, dto: UpdateAutopilotDto): Promise<AutopilotResponse> {
+  async upsert(workspaceId: string, dto: UpdateAutopilotDto, userId?: string): Promise<AutopilotResponse> {
     if (dto.formatMix !== undefined) {
       const sum = Object.values(dto.formatMix).reduce((acc, v) => acc + v, 0);
       if (Math.abs(sum - 1) > FORMAT_MIX_SUM_TOLERANCE) {
@@ -60,13 +64,24 @@ export class AutopilotService {
         `${finalPostsPerWeek} posts/semana é um volume alto — atenção ao custo de API de IA (Anthropic/fal.ai) gerado por esse ritmo.`,
       );
     }
+
+    // CA-01 (spec 042): mudança de config do piloto automático auditada.
+    await this.auditLog.record({
+      workspaceId,
+      userId,
+      action: "autopilot_config_updated",
+      entityType: "autopilot_pipeline",
+      entityId: pipeline.id,
+      metadata: { fields: Object.keys(dto) },
+    });
+
     return response;
   }
 
   // CA-02: ativar exige brand_kit.niche preenchido e ao menos 1 social_account
   // conectada — evita ligar um piloto automático que não vai conseguir
   // publicar nada (nem sequer teria um nicho para pesquisar/gerar copy).
-  async toggle(workspaceId: string, isActive: boolean): Promise<AutopilotResponse> {
+  async toggle(workspaceId: string, isActive: boolean, userId?: string): Promise<AutopilotResponse> {
     if (isActive) {
       const missing: string[] = [];
 
@@ -90,6 +105,16 @@ export class AutopilotService {
       update: { isActive },
       create: { workspaceId, isActive },
     });
+
+    // CA-01 (spec 042): mudança de config do piloto automático auditada.
+    await this.auditLog.record({
+      workspaceId,
+      userId,
+      action: isActive ? "autopilot_activated" : "autopilot_deactivated",
+      entityType: "autopilot_pipeline",
+      entityId: pipeline.id,
+    });
+
     return this.toResponse(pipeline);
   }
 

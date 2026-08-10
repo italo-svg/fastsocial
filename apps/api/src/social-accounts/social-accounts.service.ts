@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException, NotImplementedException } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
+import { AuditLogService } from "../common/services/audit-log.service";
 import { PostizClientService } from "./postiz-client.service";
 import { ConnectAccountDto } from "./dto/connect-account.dto";
 
@@ -8,6 +9,7 @@ export class SocialAccountsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly postizClient: PostizClientService,
+    private readonly auditLog: AuditLogService,
   ) {}
 
   // Garante que o workspace tem uma Organization dedicada no Postiz reusado,
@@ -95,7 +97,7 @@ export class SocialAccountsService {
     );
   }
 
-  async disconnect(workspaceId: string, socialAccountId: string) {
+  async disconnect(workspaceId: string, socialAccountId: string, userId: string) {
     const account = await this.prisma.socialAccount.findFirst({
       where: { id: socialAccountId, workspaceId },
     });
@@ -108,6 +110,16 @@ export class SocialAccountsService {
     await this.prisma.socialAccount.update({
       where: { id: account.id },
       data: { status: "disconnected" },
+    });
+
+    // CA-01 (spec 042): desconexão de conta social auditada.
+    await this.auditLog.record({
+      workspaceId,
+      userId,
+      action: "social_account_disconnected",
+      entityType: "social_account",
+      entityId: account.id,
+      metadata: { network: account.network, externalAccountId: account.externalAccountId },
     });
 
     return { id: account.id, status: "disconnected" };

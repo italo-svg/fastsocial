@@ -4,6 +4,7 @@ import { WorkspaceGuard } from "../common/guards/workspace.guard";
 import { RolesGuard } from "../common/guards/roles.guard";
 import { Roles } from "../common/decorators/roles.decorator";
 import { CurrentWorkspace, CurrentWorkspacePayload } from "../common/decorators/current-workspace.decorator";
+import { CurrentUser, CurrentUserPayload } from "../auth/current-user.decorator";
 import { SocialAccountsService } from "./social-accounts.service";
 import { ConnectAccountDto } from "./dto/connect-account.dto";
 
@@ -32,7 +33,11 @@ export class SocialAccountsController {
   @Roles("workspace_admin", "super_admin")
   @HttpCode(200)
   @Delete(":id")
-  disconnect(@CurrentWorkspace() workspace: CurrentWorkspacePayload, @Param("id") id: string) {
-    return this.socialAccountsService.disconnect(workspace.id, id);
+  disconnect(
+    @CurrentWorkspace() workspace: CurrentWorkspacePayload,
+    @CurrentUser() user: CurrentUserPayload,
+    @Param("id") id: string,
+  ) {
+    return this.socialAccountsService.disconnect(workspace.id, id, user.id);
   }
 }

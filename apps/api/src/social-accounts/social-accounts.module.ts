@@ -9,6 +9,7 @@ import { LinkedInOAuthService } from "./linkedin/linkedin-oauth.service";
 import { LinkedInPublishService } from "./linkedin/linkedin-publish.service";
 import { LinkedInTokenRefreshJob } from "./linkedin/linkedin-token-refresh.job";
 import { AuthModule } from "../auth/auth.module";
+import { AuditLogService } from "../common/services/audit-log.service";
 
 @Module({
   imports: [AuthModule],
@@ -20,6 +21,7 @@ import { AuthModule } from "../auth/auth.module";
     LinkedInOAuthService,
     LinkedInPublishService,
     LinkedInTokenRefreshJob,
+    AuditLogService,
   ],
   exports: [PostizClientService, LinkedInPublishService],
 })

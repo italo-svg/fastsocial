@@ -19,6 +19,7 @@ import { WorkspaceGuard } from "../common/guards/workspace.guard";
 import { RolesGuard } from "../common/guards/roles.guard";
 import { Roles } from "../common/decorators/roles.decorator";
 import { CurrentWorkspace, CurrentWorkspacePayload } from "../common/decorators/current-workspace.decorator";
+import { CurrentUser, CurrentUserPayload } from "../auth/current-user.decorator";
 import { BrandKitService } from "./brand-kit.service";
 import { UpdateBrandKitDto } from "./dto/update-brand-kit.dto";
 
@@ -36,8 +37,12 @@ export class BrandKitController {
 
   @Roles("workspace_admin", "super_admin")
   @Put()
-  update(@CurrentWorkspace() workspace: CurrentWorkspacePayload, @Body() dto: UpdateBrandKitDto) {
-    return this.brandKitService.upsert(workspace.id, dto);
+  update(
+    @CurrentWorkspace() workspace: CurrentWorkspacePayload,
+    @CurrentUser() user: CurrentUserPayload,
+    @Body() dto: UpdateBrandKitDto,
+  ) {
+    return this.brandKitService.upsert(workspace.id, dto, user.id);
   }
 
   @Roles("workspace_admin", "super_admin")

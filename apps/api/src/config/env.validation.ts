@@ -33,4 +33,5 @@ export const envValidationSchema = Joi.object({
   N8N_WEBHOOK_SECRET: Joi.string().optional(),
   STRIPE_SECRET_KEY: Joi.string().optional(),
   STRIPE_WEBHOOK_SECRET: Joi.string().optional(),
+  RESEND_API_KEY: Joi.string().optional(),
 }).unknown(true);

@@ -4,6 +4,7 @@ import { randomUUID } from "node:crypto";
 import * as jwt from "jsonwebtoken";
 import { PrismaService } from "../prisma/prisma.service";
 import { SupabaseAdminService } from "../common/services/supabase-admin.service";
+import { AuditLogService } from "../common/services/audit-log.service";
 import { WorkspacesService, slugify } from "../workspaces/workspaces.service";
 import { ProvisionWorkspaceDto } from "./dto/provision-workspace.dto";
 
@@ -30,6 +31,7 @@ export class PlatformAdminService {
     private readonly config: ConfigService,
     private readonly supabaseAdmin: SupabaseAdminService,
     private readonly workspacesService: WorkspacesService,
+    private readonly auditLog: AuditLogService,
   ) {}
 
   // CA-01: join agregado por workspace — uso simples de loop (não uma
@@ -71,18 +73,34 @@ export class PlatformAdminService {
     );
   }
 
-  async suspend(workspaceId: string): Promise<{ id: string; status: string }> {
+  async suspend(workspaceId: string, adminUserId: string): Promise<{ id: string; status: string }> {
     const workspace = await this.prisma.workspace.update({
       where: { id: workspaceId },
       data: { status: "suspended" },
     });
+    // CA-01 (spec 042): suspensão de workspace auditada.
+    await this.auditLog.record({
+      workspaceId,
+      userId: adminUserId,
+      action: "workspace_suspended",
+      entityType: "workspace",
+      entityId: workspaceId,
+    });
     return { id: workspace.id, status: workspace.status };
   }
 
-  async reactivate(workspaceId: string): Promise<{ id: string; status: string }> {
+  async reactivate(workspaceId: string, adminUserId: string): Promise<{ id: string; status: string }> {
     const workspace = await this.prisma.workspace.update({
       where: { id: workspaceId },
       data: { status: "active" },
+    });
+    // CA-01 (spec 042): reativação de workspace auditada.
+    await this.auditLog.record({
+      workspaceId,
+      userId: adminUserId,
+      action: "workspace_reactivated",
+      entityType: "workspace",
+      entityId: workspaceId,
     });
     return { id: workspace.id, status: workspace.status };
   }

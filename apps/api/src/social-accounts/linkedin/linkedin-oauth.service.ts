@@ -3,6 +3,7 @@ import { ConfigService } from "@nestjs/config";
 import { randomBytes } from "node:crypto";
 import { PrismaService } from "../../prisma/prisma.service";
 import { TokenEncryptionService } from "../../common/services/token-encryption.service";
+import { AuditLogService } from "../../common/services/audit-log.service";
 
 // CAMINHO B (spec 029): o Postiz reusado (spec 027) não tem suporte confiável
 // a post de documento/PDF no LinkedIn via API pública (achado documentado em
@@ -33,6 +34,7 @@ export class LinkedInOAuthService {
     private readonly config: ConfigService,
     private readonly prisma: PrismaService,
     private readonly tokenEncryption: TokenEncryptionService,
+    private readonly auditLog: AuditLogService,
   ) {}
 
   isConfigured(): boolean {
@@ -199,6 +201,17 @@ export class LinkedInOAuthService {
     });
 
     this.logger.log(`Company Page "${organization.name}" conectada ao workspace ${workspaceId} via LinkedIn OAuth.`);
+
+    // CA-01 (spec 042): conexão de conta social auditada. Sem userId aqui —
+    // este é o callback público do OAuth (o LinkedIn redireciona o browser
+    // sem nosso JWT), não há um ator autenticado nesta requisição específica.
+    await this.auditLog.record({
+      workspaceId,
+      action: "social_account_connected",
+      entityType: "social_account",
+      metadata: { network: "linkedin", organizationId: organization.id, organizationName: organization.name },
+    });
+
     return { workspaceId, organizationName: organization.name };
   }
 

@@ -4,6 +4,7 @@ import { WorkspaceGuard } from "../common/guards/workspace.guard";
 import { RolesGuard } from "../common/guards/roles.guard";
 import { Roles } from "../common/decorators/roles.decorator";
 import { CurrentWorkspace, CurrentWorkspacePayload } from "../common/decorators/current-workspace.decorator";
+import { CurrentUser, CurrentUserPayload } from "../auth/current-user.decorator";
 import { ContentPiecesService } from "./content-pieces.service";
 import { RejectContentPieceDto } from "./dto/reject-content-piece.dto";
 
@@ -17,17 +18,22 @@ export class ApprovalController {
 
   @Roles("workspace_admin", "editor", "super_admin")
   @Post(":id/approve")
-  approve(@CurrentWorkspace() workspace: CurrentWorkspacePayload, @Param("id") id: string) {
-    return this.contentPiecesService.approve(workspace.id, id);
+  approve(
+    @CurrentWorkspace() workspace: CurrentWorkspacePayload,
+    @CurrentUser() user: CurrentUserPayload,
+    @Param("id") id: string,
+  ) {
+    return this.contentPiecesService.approve(workspace.id, id, user.id);
   }
 
   @Roles("workspace_admin", "editor", "super_admin")
   @Post(":id/reject")
   reject(
     @CurrentWorkspace() workspace: CurrentWorkspacePayload,
+    @CurrentUser() user: CurrentUserPayload,
     @Param("id") id: string,
     @Body() dto: RejectContentPieceDto,
   ) {
-    return this.contentPiecesService.reject(workspace.id, id, dto.reason);
+    return this.contentPiecesService.reject(workspace.id, id, dto.reason, user.id);
   }
 }

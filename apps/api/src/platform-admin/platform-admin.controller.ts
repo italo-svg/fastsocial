@@ -24,13 +24,13 @@ export class PlatformAdminController {
   }
 
   @Post("workspaces/:id/suspend")
-  suspend(@Param("id") id: string) {
-    return this.platformAdminService.suspend(id);
+  suspend(@CurrentUser() user: CurrentUserPayload, @Param("id") id: string) {
+    return this.platformAdminService.suspend(id, user.id);
   }
 
   @Post("workspaces/:id/reactivate")
-  reactivate(@Param("id") id: string) {
-    return this.platformAdminService.reactivate(id);
+  reactivate(@CurrentUser() user: CurrentUserPayload, @Param("id") id: string) {
+    return this.platformAdminService.reactivate(id, user.id);
   }
 
   @Post("workspaces/:id/impersonate")

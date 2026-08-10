@@ -3,9 +3,10 @@ import { BillingController } from "./billing.controller";
 import { BillingWebhookController } from "./billing-webhook.controller";
 import { BillingService } from "./billing.service";
 import { StripeWebhookHandlerService } from "./stripe-webhook-handler.service";
+import { AuditLogService } from "../common/services/audit-log.service";
 
 @Module({
   controllers: [BillingController, BillingWebhookController],
-  providers: [BillingService, StripeWebhookHandlerService],
+  providers: [BillingService, StripeWebhookHandlerService, AuditLogService],
 })
 export class BillingModule {}

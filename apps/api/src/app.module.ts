@@ -20,6 +20,8 @@ import { AutopilotModule } from "./autopilot/autopilot.module";
 import { AnalyticsModule } from "./analytics/analytics.module";
 import { BillingModule } from "./billing/billing.module";
 import { PlatformAdminModule } from "./platform-admin/platform-admin.module";
+import { AuditModule } from "./audit/audit.module";
+import { DataPrivacyModule } from "./data-privacy/data-privacy.module";
 
 // Módulos de negócio (specs 012 em diante) serão importados aqui conforme forem criados.
 @Module({
@@ -53,6 +55,8 @@ import { PlatformAdminModule } from "./platform-admin/platform-admin.module";
     AnalyticsModule,
     BillingModule,
     PlatformAdminModule,
+    AuditModule,
+    DataPrivacyModule,
   ],
 })
 export class AppModule {}

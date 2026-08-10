@@ -4,6 +4,7 @@ import { WorkspaceGuard } from "../common/guards/workspace.guard";
 import { RolesGuard } from "../common/guards/roles.guard";
 import { Roles } from "../common/decorators/roles.decorator";
 import { CurrentWorkspace, CurrentWorkspacePayload } from "../common/decorators/current-workspace.decorator";
+import { CurrentUser, CurrentUserPayload } from "../auth/current-user.decorator";
 import { AutopilotService } from "./autopilot.service";
 import { UpdateAutopilotDto } from "./dto/update-autopilot.dto";
 import { ToggleAutopilotDto } from "./dto/toggle-autopilot.dto";
@@ -22,14 +23,22 @@ export class AutopilotController {
 
   @Roles("workspace_admin", "super_admin")
   @Put()
-  upsert(@CurrentWorkspace() workspace: CurrentWorkspacePayload, @Body() dto: UpdateAutopilotDto) {
-    return this.autopilotService.upsert(workspace.id, dto);
+  upsert(
+    @CurrentWorkspace() workspace: CurrentWorkspacePayload,
+    @CurrentUser() user: CurrentUserPayload,
+    @Body() dto: UpdateAutopilotDto,
+  ) {
+    return this.autopilotService.upsert(workspace.id, dto, user.id);
   }
 
   @Roles("workspace_admin", "super_admin")
   @Post("toggle")
-  toggle(@CurrentWorkspace() workspace: CurrentWorkspacePayload, @Body() dto: ToggleAutopilotDto) {
-    return this.autopilotService.toggle(workspace.id, dto.isActive);
+  toggle(
+    @CurrentWorkspace() workspace: CurrentWorkspacePayload,
+    @CurrentUser() user: CurrentUserPayload,
+    @Body() dto: ToggleAutopilotDto,
+  ) {
+    return this.autopilotService.toggle(workspace.id, dto.isActive, user.id);
   }
 
   @Get("runs")

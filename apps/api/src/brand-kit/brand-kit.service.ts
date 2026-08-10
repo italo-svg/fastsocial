@@ -3,6 +3,7 @@ import { BadRequestException, Injectable } from "@nestjs/common";
 import type { Prisma } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import { StorageService } from "../common/services/storage.service";
+import { AuditLogService } from "../common/services/audit-log.service";
 import { UpdateBrandKitDto } from "./dto/update-brand-kit.dto";
 
 const BRAND_ASSETS_BUCKET = "brand-assets";
@@ -28,6 +29,7 @@ export class BrandKitService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly storage: StorageService,
+    private readonly auditLog: AuditLogService,
   ) {}
 
   async get(workspaceId: string): Promise<BrandKitResponse | null> {
@@ -36,7 +38,7 @@ export class BrandKitService {
     return this.toResponse(kit);
   }
 
-  async upsert(workspaceId: string, dto: UpdateBrandKitDto): Promise<BrandKitResponse> {
+  async upsert(workspaceId: string, dto: UpdateBrandKitDto, userId?: string): Promise<BrandKitResponse> {
     const existing = await this.prisma.brandKit.findUnique({ where: { workspaceId } });
 
     const kit = await this.prisma.brandKit.upsert({
@@ -68,6 +70,16 @@ export class BrandKitService {
         "Recomendamos ao menos 3 imagens de referência para melhor fidelidade de marca na geração por IA.",
       );
     }
+
+    // CA-01 (spec 042): alteração de brand kit auditada.
+    await this.auditLog.record({
+      workspaceId,
+      userId,
+      action: existing ? "brand_kit_updated" : "brand_kit_created",
+      entityType: "brand_kit",
+      entityId: kit.id,
+      metadata: { fields: Object.keys(dto) },
+    });
 
     return response;
   }

@@ -3,6 +3,7 @@ import { ConfigService } from "@nestjs/config";
 import { createHmac } from "node:crypto";
 import { PrismaService } from "../prisma/prisma.service";
 import { StorageService } from "../common/services/storage.service";
+import { AuditLogService } from "../common/services/audit-log.service";
 import { CreateContentPieceDto } from "./dto/create-content-piece.dto";
 import { UpdateContentPieceDto } from "./dto/update-content-piece.dto";
 import { UpdateContentSlideDto } from "./dto/update-content-slide.dto";
@@ -31,6 +32,7 @@ export class ContentPiecesService {
     private readonly prisma: PrismaService,
     private readonly storage: StorageService,
     private readonly config: ConfigService,
+    private readonly auditLog: AuditLogService,
   ) {}
 
   // `origin` default "manual" cobre o fluxo humano (spec 025); o workflow de
@@ -108,19 +110,19 @@ export class ContentPiecesService {
     return updated;
   }
 
-  async approve(workspaceId: string, id: string) {
-    return this.transitionTo(workspaceId, id, "approved");
+  async approve(workspaceId: string, id: string, userId?: string) {
+    return this.transitionTo(workspaceId, id, "approved", userId);
   }
 
-  async reject(workspaceId: string, id: string, reason: string) {
-    await this.transitionTo(workspaceId, id, "rejected");
+  async reject(workspaceId: string, id: string, reason: string, userId?: string) {
+    await this.transitionTo(workspaceId, id, "rejected", userId);
     return this.prisma.contentPiece.update({
       where: { id },
       data: { rejectionReason: reason },
     });
   }
 
-  private async transitionTo(workspaceId: string, id: string, targetStatus: ContentPieceStatus) {
+  private async transitionTo(workspaceId: string, id: string, targetStatus: ContentPieceStatus, userId?: string) {
     const piece = await this.prisma.contentPiece.findFirst({ where: { id, workspaceId } });
     if (!piece) throw new NotFoundException("Peça de conteúdo não encontrada.");
 
@@ -132,6 +134,18 @@ export class ContentPiecesService {
     }
 
     const updated = await this.prisma.contentPiece.update({ where: { id }, data: { status: targetStatus } });
+
+    // CA-01 (spec 042): aprovação/rejeição de conteúdo auditada.
+    if (targetStatus === "approved" || targetStatus === "rejected") {
+      await this.auditLog.record({
+        workspaceId,
+        userId,
+        action: targetStatus === "approved" ? "content_piece_approved" : "content_piece_rejected",
+        entityType: "content_piece",
+        entityId: id,
+      });
+    }
+
     if (targetStatus === "approved") {
       await this.notifyApproved(workspaceId, id);
     }

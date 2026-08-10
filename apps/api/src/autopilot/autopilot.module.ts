@@ -10,6 +10,7 @@ import { ContentPiecesModule } from "../content-pieces/content-pieces.module";
 import { ImageGenerationModule } from "../image-generation/image-generation.module";
 import { TemplatesModule } from "../templates/templates.module";
 import { ImageSourcesModule } from "../image-sources/image-sources.module";
+import { AuditLogService } from "../common/services/audit-log.service";
 
 @Module({
   imports: [
@@ -22,6 +23,6 @@ import { ImageSourcesModule } from "../image-sources/image-sources.module";
     ImageSourcesModule,
   ],
   controllers: [AutopilotInternalController, AutopilotController],
-  providers: [AutopilotInternalService, AutopilotService],
+  providers: [AutopilotInternalService, AutopilotService, AuditLogService],
 })
 export class AutopilotModule {}

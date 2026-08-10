@@ -487,3 +487,20 @@ model AutomationRun {
 
   @@map("automation_runs")
 }
+
+// spec 042 (LGPD) — token de confirmação de exclusão de dados. workspaceId
+// NÃO tem onDelete: Cascade nem FK de verdade de propósito: precisa
+// sobreviver à exclusão do próprio workspace que referencia, já que é
+// consultado DEPOIS que o workspace já não existe mais (para negar reuso do
+// token). Guardamos só o id como string solta, não uma relation Prisma.
+model DataDeletionRequest {
+  id               String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  workspaceId      String    @map("workspace_id") @db.Uuid
+  requestedByEmail String    @map("requested_by_email")
+  token            String    @unique
+  expiresAt        DateTime  @map("expires_at")
+  confirmedAt      DateTime? @map("confirmed_at")
+  createdAt        DateTime  @default(now()) @map("created_at")
+
+  @@map("data_deletion_requests")
+}
