@@ -109,16 +109,23 @@ export class PublicationsService {
     await this.queue.add(
       "publish",
       { publicationId, retryCount },
-      { jobId: `${publicationId}:${retryCount}`, delay },
+      { jobId: buildJobId(publicationId, retryCount), delay },
     );
   }
 
   // Jobs de retry usam um jobId determinístico por tentativa
-  // (`${publicationId}:0`, `:1`, `:2`) — remover os 3 cobre qualquer estado
+  // (`${publicationId}-0`, `-1`, `-2`) — remover os 3 cobre qualquer estado
   // em que o job de uma publicação possa estar (inicial ou em alguma retry).
   private async removeAllPendingJobs(publicationId: string): Promise<void> {
     for (let attempt = 0; attempt <= RETRY_DELAYS_MS.length; attempt++) {
-      await this.queue.remove(`${publicationId}:${attempt}`);
+      await this.queue.remove(buildJobId(publicationId, attempt));
     }
   }
+}
+
+// BullMQ rejeita jobId customizado contendo ":" (erro "Custom Id cannot
+// contain :") — usar "-" como separador entre o UUID da publicação e o
+// número da tentativa.
+export function buildJobId(publicationId: string, retryCount: number): string {
+  return `${publicationId}-${retryCount}`;
 }

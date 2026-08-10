@@ -5,7 +5,7 @@ import { PrismaService } from "../prisma/prisma.service";
 import { InstagramFacebookPublisher } from "./network-publishers/instagram-facebook.publisher";
 import { LinkedInPublisher } from "./network-publishers/linkedin.publisher";
 import type { NetworkPublisher } from "./network-publishers/network-publisher.interface";
-import { RETRY_DELAYS_MS } from "./publications.service";
+import { buildJobId, RETRY_DELAYS_MS } from "./publications.service";
 
 interface PublishJobData {
   publicationId: string;
@@ -77,7 +77,7 @@ export class PublishProcessor extends WorkerHost {
         await this.queue.add(
           "publish",
           { publicationId, retryCount: nextRetryCount },
-          { jobId: `${publicationId}:${nextRetryCount}`, delay: RETRY_DELAYS_MS[retryCount] },
+          { jobId: buildJobId(publicationId, nextRetryCount), delay: RETRY_DELAYS_MS[retryCount] },
         );
       } else {
         this.logger.error(`Publicação ${publication.id} falhou definitivamente após ${retryCount + 1} tentativas: ${message}`);
