@@ -41,3 +41,21 @@ export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> 
 
   return res.json() as Promise<T>;
 }
+
+// Extrai a mensagem humana de dentro do corpo JSON de erro do NestJS
+// (`{"message": "...", "error": "...", "statusCode": ...}`), em vez de expor
+// o "Erro na API (400): {...}" bruto na UI — usado onde a tela precisa
+// mostrar o motivo exato vindo da API (ex: spec 037 CA-02).
+export function extractApiErrorMessage(err: unknown, fallback = "Ocorreu um erro."): string {
+  if (!(err instanceof Error)) return fallback;
+  const match = err.message.match(/^Erro na API \(\d+\): ([\s\S]*)$/);
+  if (!match) return err.message;
+  try {
+    const body = JSON.parse(match[1]) as { message?: string | string[] };
+    if (Array.isArray(body.message)) return body.message.join(" ");
+    if (typeof body.message === "string") return body.message;
+  } catch {
+    // corpo do erro nao era JSON — cai no texto bruto abaixo.
+  }
+  return match[1];
+}
