@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { Suspense, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -8,8 +8,7 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { trackFunnelEvent } from "@/lib/analytics/track-funnel-event";
 
-// Dados reais entram conforme os specs de negocio forem implementados.
-export default function DashboardPage(): JSX.Element {
+function DashboardPageInner(): JSX.Element {
   const { user, logout } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -40,5 +39,14 @@ export default function DashboardPage(): JSX.Element {
         <Badge variant="neutral">Não configurado</Badge>
       </Card>
     </main>
+  );
+}
+
+// Dados reais entram conforme os specs de negocio forem implementados.
+export default function DashboardPage(): JSX.Element {
+  return (
+    <Suspense fallback={<main className="p-8 text-sm text-neutral-600">Carregando...</main>}>
+      <DashboardPageInner />
+    </Suspense>
   );
 }
