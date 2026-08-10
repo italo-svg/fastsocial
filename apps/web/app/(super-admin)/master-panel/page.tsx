@@ -43,6 +43,9 @@ export default function MasterPanelPage(): JSX.Element {
           <Link href="/system-health" className="text-sm font-medium text-primary underline">
             Saúde do Sistema
           </Link>
+          <Link href="/funnel" className="text-sm font-medium text-primary underline">
+            Funil & UTM
+          </Link>
           <Button type="button" onClick={() => setShowProvisionModal(true)}>
             + Provisionar workspace
           </Button>
