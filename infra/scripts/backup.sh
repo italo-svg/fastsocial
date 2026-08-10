@@ -29,13 +29,25 @@ docker run --rm --network easypanel postgres:17 \
   pg_dump "${POSTIZ_DATABASE_URL}" > "$POSTIZ_DUMP"
 
 echo "==> Copiando SQLite do n8n..."
+# docker cp precisa do nome REAL do container, não do nome de serviço Swarm
+# (que só resolve via DNS na rede overlay, não como alvo de docker cp/exec) —
+# o Swarm nomeia o container real como "volupia_n8n.<slot>.<task-id>".
+N8N_CONTAINER="$(docker ps --filter "name=volupia_n8n" --format '{{.Names}}' | head -1)"
 N8N_DUMP="${WORKDIR}/n8n-database-${TIMESTAMP}.sqlite"
-docker cp volupia_n8n:/home/node/.n8n/database.sqlite "$N8N_DUMP" 2>/dev/null \
-  || echo "AVISO: não consegui copiar o SQLite do n8n (caminho pode ter mudado — checar infra/n8n/README.md)."
+if [ -n "$N8N_CONTAINER" ] && docker cp "${N8N_CONTAINER}:/home/node/.n8n/database.sqlite" "$N8N_DUMP" 2>/dev/null; then
+  :
+else
+  echo "AVISO: não consegui copiar o SQLite do n8n (container não encontrado ou caminho mudou — checar infra/n8n/README.md)."
+  N8N_DUMP=""
+fi
 
 echo "==> Compactando..."
 ARCHIVE="${WORKDIR}/fastsocial-backup-${TIMESTAMP}.tar.gz"
-tar -czf "$ARCHIVE" -C "$WORKDIR" $(basename "$POSTIZ_DUMP") $(basename "$N8N_DUMP" 2>/dev/null || true) 2>/dev/null
+FILES_TO_ARCHIVE="$(basename "$POSTIZ_DUMP")"
+if [ -n "$N8N_DUMP" ]; then
+  FILES_TO_ARCHIVE="${FILES_TO_ARCHIVE} $(basename "$N8N_DUMP")"
+fi
+tar -czf "$ARCHIVE" -C "$WORKDIR" $FILES_TO_ARCHIVE
 
 echo "==> Upload para o bucket 'backups' do Supabase Storage..."
 curl -sf -X POST "${SUPABASE_URL}/storage/v1/object/backups/$(basename "$ARCHIVE")" \
