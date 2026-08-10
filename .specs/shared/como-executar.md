@@ -70,9 +70,14 @@ UNSPLASH_ACCESS_KEY=
 META_APP_ID=
 META_APP_SECRET=
 
-# LinkedIn
+# LinkedIn (spec 029 — Caminho B: OAuth + publicação direto na API do
+# LinkedIn, sem Postiz por trás, porque ele não custodia documento/PDF de
+# forma confiável para carrossel — ver infra/postiz/README.md)
 LINKEDIN_CLIENT_ID=
 LINKEDIN_CLIENT_SECRET=
+LINKEDIN_API_VERSION=202501
+TOKEN_ENCRYPTION_KEY=          # openssl rand -hex 32 — cifra os tokens do LinkedIn em repouso
+API_PUBLIC_URL=https://api.fastsocial.volupia.cloud   # usado no redirect_uri do OAuth do LinkedIn
 
 # Postiz (self-hosted, já existente neste VPS — container real: volupia_postiz,
 # rede easypanel; API pública fica no backend Node na porta 3000, não na 5000

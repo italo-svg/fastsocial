@@ -21,4 +21,9 @@ export const envValidationSchema = Joi.object({
   ENABLE_COMPETITOR_SCRAPING: Joi.string().valid("true", "false").optional(),
   POSTIZ_API_URL: Joi.string().uri().optional(),
   POSTIZ_DATABASE_URL: Joi.string().uri({ scheme: ["postgresql", "postgres"] }).optional(),
+  API_PUBLIC_URL: Joi.string().uri().optional(),
+  LINKEDIN_CLIENT_ID: Joi.string().optional(),
+  LINKEDIN_CLIENT_SECRET: Joi.string().optional(),
+  LINKEDIN_API_VERSION: Joi.string().optional(),
+  TOKEN_ENCRYPTION_KEY: Joi.string().hex().length(64).optional(),
 }).unknown(true);
