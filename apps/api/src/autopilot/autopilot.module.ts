@@ -1,6 +1,8 @@
 import { Module } from "@nestjs/common";
 import { AutopilotInternalController } from "./autopilot-internal.controller";
 import { AutopilotInternalService } from "./autopilot-internal.service";
+import { AutopilotController } from "./autopilot.controller";
+import { AutopilotService } from "./autopilot.service";
 import { AuthModule } from "../auth/auth.module";
 import { ResearchModule } from "../research/research.module";
 import { CopyGenerationModule } from "../copy-generation/copy-generation.module";
@@ -19,7 +21,7 @@ import { ImageSourcesModule } from "../image-sources/image-sources.module";
     TemplatesModule,
     ImageSourcesModule,
   ],
-  controllers: [AutopilotInternalController],
-  providers: [AutopilotInternalService],
+  controllers: [AutopilotInternalController, AutopilotController],
+  providers: [AutopilotInternalService, AutopilotService],
 })
 export class AutopilotModule {}
