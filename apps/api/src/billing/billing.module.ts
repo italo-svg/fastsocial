@@ -8,5 +8,6 @@ import { AuditLogService } from "../common/services/audit-log.service";
 @Module({
   controllers: [BillingController, BillingWebhookController],
   providers: [BillingService, StripeWebhookHandlerService, AuditLogService],
+  exports: [BillingService],
 })
 export class BillingModule {}

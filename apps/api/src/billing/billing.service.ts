@@ -16,6 +16,17 @@ export interface BillingPlan {
   stripePriceId?: string;
 }
 
+// spec 053: mesma seção addons do plans.json, formato compartilhado com
+// scripts/setup-stripe-products.ts.
+export interface AddonProduct {
+  key: string;
+  name: string;
+  priceMonthlyCents: number;
+  currency: string;
+  stripeProductId?: string;
+  stripePriceId?: string;
+}
+
 // infra/billing/plans.json é a fonte da verdade compartilhada com
 // scripts/setup-stripe-products.ts (roda fora do Docker, direto no
 // repositório). O container da API não empacota infra/ na imagem (o
@@ -68,14 +79,32 @@ export class BillingService {
     return this.stripeClient;
   }
 
+  private loadPlansFile(): { plans: BillingPlan[]; addons?: AddonProduct[] } {
+    return JSON.parse(readFileSync(resolvePlansPath(), "utf8")) as { plans: BillingPlan[]; addons?: AddonProduct[] };
+  }
+
   loadPlans(): BillingPlan[] {
-    const file = JSON.parse(readFileSync(resolvePlansPath(), "utf8")) as { plans: BillingPlan[] };
-    return file.plans;
+    return this.loadPlansFile().plans;
   }
 
   listPlans(): BillingPlan[] {
     this.requireConfigured();
     return this.loadPlans();
+  }
+
+  loadAddons(): AddonProduct[] {
+    return this.loadPlansFile().addons ?? [];
+  }
+
+  findAddon(addonKey: string): AddonProduct {
+    const addon = this.loadAddons().find((a) => a.key === addonKey);
+    if (!addon) throw new NotFoundException(`Add-on "${addonKey}" não encontrado em plans.json.`);
+    if (!addon.stripePriceId) {
+      throw new NotFoundException(
+        `Add-on "${addonKey}" ainda não tem stripePriceId — rode scripts/setup-stripe-products.ts primeiro.`,
+      );
+    }
+    return addon;
   }
 
   private findPlan(planKey: string): BillingPlan {
@@ -121,6 +150,34 @@ export class BillingService {
 
     if (!session.url) throw new Error("Stripe não retornou uma URL de Checkout.");
     return { url: session.url };
+  }
+
+  // spec 053, item 1: item de add-on vai na MESMA assinatura Stripe do plano
+  // base (fatura única) — nunca cria uma assinatura paralela. Sem
+  // stripeSubscriptionId salvo (workspace ainda em trial, nunca completou um
+  // Checkout pago), falha com mensagem clara em vez de tentar adivinhar.
+  private async getActiveStripeSubscriptionId(workspaceId: string): Promise<string> {
+    const subscription = await this.prisma.subscription.findUniqueOrThrow({ where: { workspaceId } });
+    if (!subscription.stripeSubscriptionId) {
+      throw new NotFoundException(
+        "Workspace ainda não tem uma assinatura Stripe ativa — assine um plano pago antes de contratar um add-on.",
+      );
+    }
+    return subscription.stripeSubscriptionId;
+  }
+
+  async createAddonSubscriptionItem(workspaceId: string, addonKey: string): Promise<Stripe.SubscriptionItem> {
+    const addon = this.findAddon(addonKey);
+    const stripeSubscriptionId = await this.getActiveStripeSubscriptionId(workspaceId);
+    return this.stripe.subscriptionItems.create({
+      subscription: stripeSubscriptionId,
+      price: addon.stripePriceId!,
+      metadata: { workspaceId, addonKey },
+    });
+  }
+
+  async cancelAddonSubscriptionItem(stripeSubscriptionItemId: string): Promise<void> {
+    await this.stripe.subscriptionItems.del(stripeSubscriptionItemId);
   }
 
   async createPortalSession(workspaceId: string): Promise<{ url: string }> {

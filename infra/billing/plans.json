@@ -24,5 +24,13 @@
       "maxSocialAccounts": 15,
       "maxPostsPerMonth": 300
     }
+  ],
+  "addons": [
+    {
+      "key": "instagram_automation",
+      "name": "Automação de Instagram",
+      "priceMonthlyCents": 4900,
+      "currency": "brl"
+    }
   ]
 }

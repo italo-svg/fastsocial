@@ -20,8 +20,22 @@ interface Plan {
   stripePriceId?: string;
 }
 
+// spec 053: add-ons pagos (ex: automação de Instagram) — mesma forma dos
+// planos base, mas numa seção separada (nunca aparecem em GET /billing/plans,
+// só em GET /addons) e cobrados como item adicional da assinatura existente,
+// não uma assinatura nova.
+interface AddonProduct {
+  key: string;
+  name: string;
+  priceMonthlyCents: number;
+  currency: string;
+  stripeProductId?: string;
+  stripePriceId?: string;
+}
+
 interface PlansFile {
   plans: Plan[];
+  addons?: AddonProduct[];
 }
 
 const PLANS_PATH = resolve(__dirname, "../infra/billing/plans.json");
@@ -36,34 +50,41 @@ async function main(): Promise<void> {
   const stripe = new Stripe(secretKey);
   const file: PlansFile = JSON.parse(readFileSync(PLANS_PATH, "utf8"));
 
-  for (const plan of file.plans) {
-    if (plan.stripePriceId) {
+  async function ensureProduct(item: Plan | AddonProduct, metadataKey: string): Promise<void> {
+    if (item.stripePriceId) {
       try {
-        const existingPrice = await stripe.prices.retrieve(plan.stripePriceId);
+        const existingPrice = await stripe.prices.retrieve(item.stripePriceId);
         if (existingPrice.active) {
-          console.log(`[${plan.key}] já existe e está ativo (${plan.stripePriceId}) — pulando.`);
-          continue;
+          console.log(`[${item.key}] já existe e está ativo (${item.stripePriceId}) — pulando.`);
+          return;
         }
       } catch {
-        console.log(`[${plan.key}] stripePriceId gravado (${plan.stripePriceId}) não encontrado no Stripe — recriando.`);
+        console.log(`[${item.key}] stripePriceId gravado (${item.stripePriceId}) não encontrado no Stripe — recriando.`);
       }
     }
 
     const product = await stripe.products.create({
-      name: plan.name,
-      metadata: { planKey: plan.key },
+      name: item.name,
+      metadata: { [metadataKey]: item.key },
     });
     const price = await stripe.prices.create({
       product: product.id,
-      unit_amount: plan.priceMonthlyCents,
-      currency: plan.currency,
+      unit_amount: item.priceMonthlyCents,
+      currency: item.currency,
       recurring: { interval: "month" },
-      metadata: { planKey: plan.key },
+      metadata: { [metadataKey]: item.key },
     });
 
-    plan.stripeProductId = product.id;
-    plan.stripePriceId = price.id;
-    console.log(`[${plan.key}] criado: product=${product.id} price=${price.id}`);
+    item.stripeProductId = product.id;
+    item.stripePriceId = price.id;
+    console.log(`[${item.key}] criado: product=${product.id} price=${price.id}`);
+  }
+
+  for (const plan of file.plans) {
+    await ensureProduct(plan, "planKey");
+  }
+  for (const addon of file.addons ?? []) {
+    await ensureProduct(addon, "addonKey");
   }
 
   writeFileSync(PLANS_PATH, JSON.stringify(file, null, 2) + "\n");

@@ -54,6 +54,12 @@ export class StripeWebhookHandlerService {
     const previousSubscription = await this.prisma.subscription.findUnique({ where: { workspaceId } });
     const wasTrial = previousSubscription?.planType === "trial";
 
+    // spec 053: guarda o ID da assinatura Stripe — sem isso não dá pra anexar
+    // um item de add-on a ela depois (stripe.subscriptionItems.create exige
+    // o ID da subscription, não só do customer).
+    const stripeSubscriptionId =
+      typeof session.subscription === "string" ? session.subscription : (session.subscription?.id ?? undefined);
+
     await this.prisma.subscription.update({
       where: { workspaceId },
       data: {
@@ -62,6 +68,7 @@ export class StripeWebhookHandlerService {
         maxPostsPerMonth: plan.maxPostsPerMonth,
         billingStatus: "active",
         currentPeriodEnd: session.expires_at ? new Date(session.expires_at * 1000) : undefined,
+        ...(stripeSubscriptionId ? { stripeSubscriptionId } : {}),
       },
     });
     this.logger.log(`Workspace ${workspaceId} assinou o plano "${plan.key}" via Checkout ${session.id}.`);
@@ -128,6 +135,55 @@ export class StripeWebhookHandlerService {
         currentPeriodEnd: currentPeriodEnd ? new Date(currentPeriodEnd * 1000) : undefined,
       },
     });
+
+    await this.reconcileAddons(workspaceId, subscription);
+  }
+
+  // CA-02 (spec 053): mesmo padrão do plano base — não é a resposta síncrona
+  // de POST /addons/:key/subscribe que ativa o add-on, é este webhook
+  // (stripe.subscriptionItems.create já dispara customer.subscription.updated
+  // sozinho). Reconcilia por item de preço em vez de confiar em metadata do
+  // evento, porque customer.subscription.updated não carrega o metadata que
+  // foi passado pro subscriptionItems.create.
+  private async reconcileAddons(workspaceId: string, subscription: Stripe.Subscription): Promise<void> {
+    const addons = this.billingService.loadAddons();
+    if (addons.length === 0) return;
+
+    const activePriceIds = new Set(subscription.items.data.map((item) => item.price.id));
+
+    for (const addon of addons) {
+      if (!addon.stripePriceId) continue;
+      const matchingItem = subscription.items.data.find((item) => item.price.id === addon.stripePriceId);
+      const existing = await this.prisma.workspaceAddon.findUnique({
+        where: { workspaceId_addonKey: { workspaceId, addonKey: addon.key } },
+      });
+
+      if (matchingItem && existing?.status !== "active") {
+        await this.prisma.workspaceAddon.upsert({
+          where: { workspaceId_addonKey: { workspaceId, addonKey: addon.key } },
+          update: { status: "active", stripeSubscriptionItemId: matchingItem.id },
+          create: {
+            workspaceId,
+            addonKey: addon.key,
+            status: "active",
+            stripeSubscriptionItemId: matchingItem.id,
+          },
+        });
+        this.logger.log(`Add-on "${addon.key}" ativado para o workspace ${workspaceId} via webhook.`);
+      } else if (!activePriceIds.has(addon.stripePriceId) && existing?.status === "active") {
+        // item removido da assinatura por fora do fluxo normal de cancel()
+        // (ex: direto no painel do Stripe) — mantém consistente mesmo assim.
+        await this.prisma.workspaceAddon.update({
+          where: { workspaceId_addonKey: { workspaceId, addonKey: addon.key } },
+          data: { status: "cancelled" },
+        });
+        await this.deactivateAutomationFlows(workspaceId);
+      }
+    }
+  }
+
+  private async deactivateAutomationFlows(workspaceId: string): Promise<void> {
+    await this.prisma.automationFlow.updateMany({ where: { workspaceId }, data: { isActive: false } });
   }
 
   // CA-05 (via spec 003): reverter para os limites de trial ao cancelar é o

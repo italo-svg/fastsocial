@@ -315,6 +315,11 @@ model Subscription {
   maxPostsPerMonth  Int       @default(20) @map("max_posts_per_month")
   billingStatus     String    @default("active") @map("billing_status")
   stripeCustomerId  String?   @map("stripe_customer_id")
+  // spec 053: precisa saber a QUAL assinatura Stripe anexar um item de
+  // add-on (stripe.subscriptionItems.create) — sem isso não dá pra
+  // diferenciar "workspace sem assinatura paga ainda" de "tem assinatura,
+  // só não sabemos o ID" (o código anterior só guardava o customer).
+  stripeSubscriptionId String? @map("stripe_subscription_id")
   currentPeriodEnd  DateTime? @map("current_period_end")
   createdAt         DateTime  @default(now()) @map("created_at")
 
