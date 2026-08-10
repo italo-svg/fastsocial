@@ -32,8 +32,15 @@ export class BullBoardService {
     const serverAdapter = new ExpressAdapter();
     serverAdapter.setBasePath(BULL_BOARD_ROUTE);
 
+    // Cast: @bull-board/api trava o tipo de progress do Job em number|object,
+    // mas a versão instalada do bullmq (^5.34) permite string também —
+    // incompatibilidade só de tipos entre as duas libs, não de runtime (o
+    // pacote funciona normalmente com qualquer Queue real do BullMQ).
     createBullBoard({
-      queues: [new BullMQAdapter(this.publishQueue), new BullMQAdapter(this.dataExportQueue)],
+      queues: [
+        new BullMQAdapter(this.publishQueue as never),
+        new BullMQAdapter(this.dataExportQueue as never),
+      ],
       serverAdapter,
     });
 
