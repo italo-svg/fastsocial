@@ -1,6 +1,7 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import * as jwt from "jsonwebtoken";
+import { Prisma } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import { RecordFunnelEventDto } from "./dto/record-funnel-event.dto";
 
@@ -83,7 +84,7 @@ export class FunnelService {
         utmCampaign: utm?.campaign,
         utmTerm: utm?.term,
         utmContent: utm?.content,
-        metadata: dto.metadata ?? {},
+        metadata: (dto.metadata ?? {}) as Prisma.InputJsonValue,
       },
     });
 
