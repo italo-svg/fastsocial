@@ -53,7 +53,7 @@ function buildQuery(params: Record<string, string | undefined>): string {
 export function useAnalyticsSummary(filters: AnalyticsFilters) {
   return useQuery({
     queryKey: ["analytics", "summary", filters],
-    queryFn: () => apiFetch<AnalyticsSummary>(`/analytics/summary?${buildQuery(filters)}`),
+    queryFn: () => apiFetch<AnalyticsSummary>(`/analytics/summary?${buildQuery({ ...filters })}`),
   });
 }
 
@@ -78,7 +78,7 @@ export async function downloadAnalyticsCsv(filters: AnalyticsFilters): Promise<v
   } = await supabase.auth.getSession();
 
   const activeWorkspaceId = useAuthStore.getState().activeWorkspaceId;
-  const res = await fetch(`${API_URL}/api/v1/analytics/export.csv?${buildQuery(filters)}`, {
+  const res = await fetch(`${API_URL}/api/v1/analytics/export.csv?${buildQuery({ ...filters })}`, {
     headers: {
       ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
       ...(activeWorkspaceId ? { "X-Workspace-Id": activeWorkspaceId } : {}),
