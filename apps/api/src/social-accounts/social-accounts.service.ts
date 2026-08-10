@@ -105,8 +105,14 @@ export class SocialAccountsService {
       throw new NotFoundException("Conta social não encontrada neste workspace.");
     }
 
-    const apiKey = await this.ensurePostizApiKey(workspaceId);
-    await this.postizClient.disconnectIntegration(apiKey, account.externalAccountId);
+    // Bug real encontrado no spec 042 ao tentar auditar uma desconexão: esta
+    // função sempre chamava o Postiz, mesmo para LinkedIn (Caminho B, spec
+    // 029) — que nunca teve integração nenhuma lá, sempre falhando com 500.
+    // Só Instagram/Facebook (Caminho A, spec 028) são custodiados pelo Postiz.
+    if (account.network !== "linkedin") {
+      const apiKey = await this.ensurePostizApiKey(workspaceId);
+      await this.postizClient.disconnectIntegration(apiKey, account.externalAccountId);
+    }
     await this.prisma.socialAccount.update({
       where: { id: account.id },
       data: { status: "disconnected" },
