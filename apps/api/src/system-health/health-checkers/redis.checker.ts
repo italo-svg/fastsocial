@@ -15,7 +15,11 @@ export class RedisChecker implements HealthChecker {
   check(): Promise<ServiceHealth> {
     return runWithTimeout(this.name, async () => {
       const client = await this.publishQueue.client;
-      const pong = await client.ping();
+      // IRedisClient (tipo do bullmq) não expõe .ping() na interface pública,
+      // mas o objeto real em runtime é sempre uma instância ioredis — cast
+      // pontual só pra este health check, sem depender de ioredis como
+      // dependência declarada do projeto.
+      const pong = (await (client as unknown as { ping(): Promise<string> }).ping()) as string;
       return pong === "PONG" ? { status: "up" } : { status: "down", detail: `PING inesperado: ${pong}` };
     });
   }
