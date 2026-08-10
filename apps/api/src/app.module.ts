@@ -32,6 +32,7 @@ import { SystemPromptsModule } from "./system-prompts/system-prompts.module";
 import { HelpCenterModule } from "./help-center/help-center.module";
 import { SupportChatModule } from "./support-chat/support-chat.module";
 import { AddonsModule } from "./addons/addons.module";
+import { InstagramAutomationModule } from "./instagram-automation/instagram-automation.module";
 
 // Módulos de negócio (specs 012 em diante) serão importados aqui conforme forem criados.
 @Module({
@@ -74,6 +75,7 @@ import { AddonsModule } from "./addons/addons.module";
     HelpCenterModule,
     SupportChatModule,
     AddonsModule,
+    InstagramAutomationModule,
   ],
   providers: [ErrorTrackingService, { provide: APP_FILTER, useClass: ErrorTrackingFilter }],
 })
