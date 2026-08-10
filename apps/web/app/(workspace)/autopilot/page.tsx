@@ -26,7 +26,7 @@ const DEFAULT_FORM: FormState = {
 };
 
 export default function AutopilotPage(): JSX.Element {
-  const { data: autopilot, isLoading } = useAutopilot();
+  const { data: autopilot, isLoading, isError, error } = useAutopilot();
   const { data: runs, isLoading: isLoadingRuns } = useAutopilotRuns();
   const updateMutation = useUpdateAutopilot();
 
@@ -47,6 +47,14 @@ export default function AutopilotPage(): JSX.Element {
       setForm(DEFAULT_FORM);
     }
   }, [autopilot, form]);
+
+  if (isError) {
+    return (
+      <main className="mx-auto max-w-3xl p-6">
+        <p className="text-sm text-danger">{extractApiErrorMessage(error, "Não foi possível carregar o piloto automático.")}</p>
+      </main>
+    );
+  }
 
   if (isLoading || form === null) {
     return (
@@ -89,7 +97,7 @@ export default function AutopilotPage(): JSX.Element {
         </p>
       </div>
 
-      {autopilot && <ActivationToggle isActive={autopilot.isActive} />}
+      <ActivationToggle isActive={autopilot?.isActive ?? false} />
 
       <Card className="space-y-5">
         <h2 className="text-base font-semibold">Configuração</h2>

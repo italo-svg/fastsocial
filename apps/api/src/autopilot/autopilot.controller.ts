@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, Put, UseGuards } from "@nestjs/common";
+import { Body, Controller, Get, NotFoundException, Post, Put, UseGuards } from "@nestjs/common";
 import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
 import { WorkspaceGuard } from "../common/guards/workspace.guard";
 import { RolesGuard } from "../common/guards/roles.guard";
@@ -14,8 +14,10 @@ export class AutopilotController {
   constructor(private readonly autopilotService: AutopilotService) {}
 
   @Get()
-  get(@CurrentWorkspace() workspace: CurrentWorkspacePayload) {
-    return this.autopilotService.get(workspace.id);
+  async get(@CurrentWorkspace() workspace: CurrentWorkspacePayload) {
+    const config = await this.autopilotService.get(workspace.id);
+    if (!config) throw new NotFoundException("Piloto automático ainda não configurado.");
+    return config;
   }
 
   @Roles("workspace_admin", "super_admin")
