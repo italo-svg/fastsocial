@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useTemplates } from "@/hooks/useTemplates";
+import { trackFunnelEvent } from "@/lib/analytics/track-funnel-event";
 
 export default function OnboardingTemplatesPage(): JSX.Element {
   const router = useRouter();
@@ -57,7 +58,13 @@ export default function OnboardingTemplatesPage(): JSX.Element {
       </div>
 
       <div className="flex justify-end">
-        <Button onClick={() => router.push("/dashboard")} disabled={selectedIds.length === 0}>
+        <Button
+          onClick={() => {
+            void trackFunnelEvent("onboarding_completed", { templatesSelected: selectedIds.length });
+            router.push("/dashboard");
+          }}
+          disabled={selectedIds.length === 0}
+        >
           Continuar ({selectedIds.length} selecionado{selectedIds.length === 1 ? "" : "s"})
         </Button>
       </div>

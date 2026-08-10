@@ -51,6 +51,9 @@ export class StripeWebhookHandlerService {
       return;
     }
 
+    const previousSubscription = await this.prisma.subscription.findUnique({ where: { workspaceId } });
+    const wasTrial = previousSubscription?.planType === "trial";
+
     await this.prisma.subscription.update({
       where: { workspaceId },
       data: {
@@ -70,6 +73,35 @@ export class StripeWebhookHandlerService {
       action: "billing_plan_changed",
       entityType: "subscription",
       metadata: { planKey: plan.key, stripeSessionId: session.id },
+    });
+
+    // trial_converted_to_paid (spec 046): só quando a assinatura ANTERIOR era
+    // trial — troca entre dois planos pagos não é uma conversão de funil.
+    // Este evento nasce de um webhook assíncrono do Stripe (sem browser/
+    // sessão ativa), então não passa pelo endpoint público POST /funnel/events
+    // — grava direto, reusando o anonymous_id mais recente já associado a
+    // algum membro do workspace pra manter a mesma linha de atribuição
+    // first-touch em vez de começar uma nova identidade "do servidor".
+    if (wasTrial) {
+      await this.recordTrialConvertedEvent(workspaceId);
+    }
+  }
+
+  private async recordTrialConvertedEvent(workspaceId: string): Promise<void> {
+    const admin = await this.prisma.workspaceMember.findFirst({
+      where: { workspaceId, role: { in: ["workspace_admin", "super_admin"] } },
+      orderBy: { joinedAt: "asc" },
+    });
+    if (!admin) return;
+
+    const priorEvent = await this.prisma.funnelEvent.findFirst({
+      where: { userId: admin.userId },
+      orderBy: { occurredAt: "asc" },
+    });
+    const anonymousId = priorEvent?.anonymousId ?? `server:${admin.userId}`;
+
+    await this.prisma.funnelEvent.create({
+      data: { anonymousId, userId: admin.userId, workspaceId, eventName: "trial_converted_to_paid" },
     });
   }
 

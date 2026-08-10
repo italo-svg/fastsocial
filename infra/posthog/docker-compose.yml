@@ -1,0 +1,96 @@
+# Stack self-hospedada do PostHog (spec 046) — Postgres/ClickHouse/Redis
+# PRÓPRIOS, isolados do banco do produto (mesmo princípio do GlitchTip, spec
+# 044). Rede externa "easypanel", mesmo padrão de infra/observability/.
+#
+# AVISO IMPORTANTE (ver footnote da Task 046 em .specs/EXECUTAR-SPECS.md):
+# este arquivo NÃO foi executado neste VPS. O deploy oficial "hobby" atual do
+# PostHog (verificado ao vivo via WebFetch no repositório oficial durante esta
+# sessão) cresceu para 15+ serviços — Temporal, MinIO, SeaweedFS, Browserless,
+# ingestão separada de session-replay/error-tracking/traces, feature-flags em
+# Rust, roteador de identidade "PersonHog" etc. — muito além do que cabe com
+# segurança neste VPS compartilhado (só ~1.6GB livres de RAM na hora da
+# checagem, já rodando Postiz/n8n/Cal.com/Supabase/GlitchTip/FastSocial em
+# produção real da agência). Este arquivo é uma reconstrução ENXUTA do núcleo
+# histórico do hobby-deploy (só o necessário pra ingestão de evento + funil:
+# web, worker, plugin-server, Postgres, Redis, ClickHouse, Zookeeper+Kafka),
+# escrita de boa-fé pra cumprir o item "arquivo a criar" do spec, mas NÃO
+# testada ao vivo — validar as tags de imagem/variáveis contra a versão atual
+# antes de rodar de verdade, ou preferir as alternativas descritas na
+# footnote (VPS dedicado, ou PostHog Cloud — o cliente frontend já é
+# agnóstico de host, só precisa de NEXT_PUBLIC_POSTHOG_HOST/KEY reais).
+services:
+  posthog-db:
+    image: postgres:15
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: posthog
+      POSTGRES_PASSWORD: ${POSTHOG_DB_PASSWORD}
+      POSTGRES_DB: posthog
+    volumes:
+      - posthog-db-data:/var/lib/postgresql/data
+    networks: [easypanel]
+
+  posthog-redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    networks: [easypanel]
+
+  posthog-zookeeper:
+    image: confluentinc/cp-zookeeper:7.6.1
+    restart: unless-stopped
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+    networks: [easypanel]
+
+  posthog-kafka:
+    image: confluentinc/cp-kafka:7.6.1
+    restart: unless-stopped
+    depends_on: [posthog-zookeeper]
+    environment:
+      KAFKA_ZOOKEEPER_CONNECT: posthog-zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://posthog-kafka:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    networks: [easypanel]
+
+  posthog-clickhouse:
+    image: clickhouse/clickhouse-server:23.12
+    restart: unless-stopped
+    ulimits:
+      nofile: { soft: 262144, hard: 262144 }
+    volumes:
+      - posthog-clickhouse-data:/var/lib/clickhouse
+    networks: [easypanel]
+
+  posthog-web: &posthog-app
+    image: posthog/posthog:release-1.50.0
+    restart: unless-stopped
+    command: /compose/start
+    depends_on: [posthog-db, posthog-redis, posthog-clickhouse, posthog-kafka]
+    environment: &posthog-env
+      DATABASE_URL: postgres://posthog:${POSTHOG_DB_PASSWORD}@posthog-db:5432/posthog
+      REDIS_URL: redis://posthog-redis:6379
+      CLICKHOUSE_HOST: posthog-clickhouse
+      CLICKHOUSE_DATABASE: posthog
+      KAFKA_HOSTS: posthog-kafka:9092
+      SECRET_KEY: ${POSTHOG_SECRET_KEY}
+      SITE_URL: https://posthog.fastsocial.volupia.cloud
+      DISABLE_SECURE_SSL_REDIRECT: "true"
+    networks: [easypanel]
+
+  posthog-worker:
+    <<: *posthog-app
+    command: /compose/start_worker
+    depends_on: [posthog-web]
+
+  posthog-plugins:
+    <<: *posthog-app
+    command: /compose/start_plugins
+    depends_on: [posthog-web]
+
+networks:
+  easypanel:
+    external: true
+
+volumes:
+  posthog-db-data:
+  posthog-clickhouse-data:

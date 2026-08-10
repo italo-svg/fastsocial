@@ -1,6 +1,14 @@
+"use client";
+
+import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
+import { trackFunnelEvent } from "@/lib/analytics/track-funnel-event";
 
 export default function LandingPage(): JSX.Element {
+  useEffect(() => {
+    void trackFunnelEvent("landing_viewed");
+  }, []);
+
   return (
     <main className="flex min-h-screen flex-col items-center justify-center gap-6 p-8 text-center">
       <h1 className="text-4xl font-bold">FastSocial</h1>

@@ -21,6 +21,7 @@
     "@nestjs/platform-express": "^10.4.0",
     "@nestjs/schedule": "^4.1.0",
     "@nestjs/bullmq": "^10.2.3",
+    "@nestjs/throttler": "^6.2.1",
     "@bull-board/api": "^8.6.0",
     "@bull-board/express": "^8.6.0",
     "@sentry/node": "^8.42.0",

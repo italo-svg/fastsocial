@@ -13,6 +13,7 @@ import {
   useUpdateContentPieceTemplate,
 } from "@/hooks/useContentEditor";
 import type { Template } from "@/hooks/useTemplates";
+import { trackFunnelEvent } from "@/lib/analytics/track-funnel-event";
 
 function NewContentPageInner(): JSX.Element {
   const searchParams = useSearchParams();
@@ -36,7 +37,16 @@ function NewContentPageInner(): JSX.Element {
     if (!contentPieceId) {
       createPiece.mutate(
         { templateId: template.id, format: template.format, briefing, insightId: insightIdFromQuery },
-        { onSuccess: (created) => setContentPieceId(created.id) },
+        {
+          onSuccess: (created) => {
+            // Dispara em toda criação, não só na primeira de fato — o painel
+            // de funil (spec 047) trata a primeira ocorrência por usuário
+            // como o passo de conversão, mesmo padrão do PostHog pra eventos
+            // "first time" dentro de um funil.
+            void trackFunnelEvent("first_content_piece_created", { contentPieceId: created.id });
+            setContentPieceId(created.id);
+          },
+        },
       );
     } else {
       updateTemplate.mutate(template.id);

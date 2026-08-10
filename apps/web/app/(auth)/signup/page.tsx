@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { trackFunnelEvent } from "@/lib/analytics/track-funnel-event";
 
 export default function SignupPage(): JSX.Element {
   const [name, setName] = useState("");
@@ -23,6 +24,7 @@ export default function SignupPage(): JSX.Element {
       return;
     }
 
+    void trackFunnelEvent("signup_started");
     setLoading(true);
     const supabase = createClient();
     const { data, error: signUpError } = await supabase.auth.signUp({
@@ -36,6 +38,8 @@ export default function SignupPage(): JSX.Element {
       setError(signUpError.message.includes("already registered") ? "Este e-mail já tem conta." : "Não foi possível criar a conta.");
       return;
     }
+
+    void trackFunnelEvent("signup_completed");
 
     if (data.session) {
       window.location.href = "/workspace-select";

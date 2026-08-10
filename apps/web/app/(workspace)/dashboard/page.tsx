@@ -1,13 +1,28 @@
 "use client";
 
+import { useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
+import { trackFunnelEvent } from "@/lib/analytics/track-funnel-event";
 
 // Dados reais entram conforme os specs de negocio forem implementados.
 export default function DashboardPage(): JSX.Element {
   const { user, logout } = useAuth();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
+  // ?funnel_event=email_confirmed vem do route.ts do /callback (spec 046) —
+  // dispara aqui (client-side, precisa do posthog-js) e limpa a URL em
+  // seguida pra não disparar de novo num refresh da página.
+  useEffect(() => {
+    if (searchParams.get("funnel_event") === "email_confirmed") {
+      void trackFunnelEvent("email_confirmed");
+      router.replace("/dashboard");
+    }
+  }, [searchParams, router]);
 
   return (
     <main className="p-8 space-y-4">
