@@ -1,0 +1,82 @@
+# Compose de produção (spec 043) — SÓ os serviços que o FastSocial de fato
+# possui e gerencia: api, web, render-engine, redis. Postiz, n8n e o Supabase
+# self-hospedado são infraestrutura REUSADA da agência, já rodando neste
+# mesmo VPS por fora deste compose (Swarm/Easypanel) — ver
+# infra/postiz/README.md e infra/n8n/README.md para a decisão consciente de
+# NÃO trazê-los para cá. Tentar "adotar" serviços Swarm já em produção dentro
+# de um compose novo arriscaria duplicar/conflitar com o que já está no ar.
+#
+# Rede: usa a rede overlay externa "easypanel" que já existe no VPS (mesma
+# rede de volupia_postiz/volupia_n8n) — não cria rede própria, para que o
+# roteamento do Traefik (arquivo estático em
+# /etc/easypanel/traefik/config/fastsocial.yaml, ver infra/supabase/README.md)
+# continue enxergando os containers pelo nome, sem precisar de labels Docker
+# (este Traefik usa provider de arquivo, não o provider Docker).
+#
+# Variáveis: todas vêm de um único .env em /opt/fastsocial/.env no VPS
+# (nunca commitado — ver infra/README-PRODUCAO.md). Lista completa de chaves
+# aceitas em apps/api/src/config/env.validation.ts e .env.example.
+
+name: fastsocial
+
+networks:
+  easypanel:
+    external: true
+
+volumes:
+  fastsocial-redis-data:
+    external: true
+
+services:
+  api:
+    image: ghcr.io/${GITHUB_REPOSITORY:-italo-svg/fastsocial}-api:${IMAGE_TAG:-latest}
+    build:
+      context: ../apps/api
+    container_name: fastsocial-api-prod
+    restart: always
+    networks:
+      - easypanel
+    env_file: ../.env
+    environment:
+      NODE_ENV: production
+    # data_deletion exports/plans.json — ver nota em billing.service.ts sobre
+    # o Dockerfile de apps/api não empacotar infra/ na imagem.
+    volumes:
+      - ../infra/billing/plans.json:/app/infra/billing/plans.json:ro
+
+  web:
+    image: ghcr.io/${GITHUB_REPOSITORY:-italo-svg/fastsocial}-web:${IMAGE_TAG:-latest}
+    build:
+      context: ../apps/web
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
+        NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL}
+        NEXT_PUBLIC_SUPABASE_ANON_KEY: ${NEXT_PUBLIC_SUPABASE_ANON_KEY}
+    container_name: fastsocial-web-auth
+    restart: always
+    networks:
+      - easypanel
+    ports:
+      - "127.0.0.1:3002:3000"
+
+  render-engine:
+    image: ghcr.io/${GITHUB_REPOSITORY:-italo-svg/fastsocial}-render-engine:${IMAGE_TAG:-latest}
+    build:
+      context: ../services/render-engine
+    container_name: fastsocial-render-engine
+    restart: always
+    networks:
+      - easypanel
+    ports:
+      - "127.0.0.1:3334:3334"
+    env_file: ../.env
+
+  redis:
+    image: redis:7-alpine
+    container_name: fastsocial-redis
+    restart: always
+    networks:
+      - easypanel
+    volumes:
+      - fastsocial-redis-data:/data
+    command: redis-server --appendonly yes
