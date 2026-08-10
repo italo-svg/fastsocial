@@ -42,4 +42,19 @@ export class WorkspacesController {
   ) {
     return this.workspacesService.removeMember(workspaceId, targetUserId, user.id);
   }
+
+  @Get("workspaces/:id/product-tour")
+  getProductTourStatus(@Param("id") workspaceId: string, @CurrentUser() user: CurrentUserPayload) {
+    return this.workspacesService.getProductTourStatus(workspaceId, user.id);
+  }
+
+  @Post("workspaces/:id/product-tour/seen")
+  markProductTourSeen(@Param("id") workspaceId: string, @CurrentUser() user: CurrentUserPayload) {
+    return this.workspacesService.markProductTourSeen(workspaceId, user.id);
+  }
+
+  @Get("workspaces/:id/onboarding-progress")
+  getOnboardingProgress(@Param("id") workspaceId: string, @CurrentUser() user: CurrentUserPayload) {
+    return this.workspacesService.getOnboardingProgress(workspaceId, user.id);
+  }
 }

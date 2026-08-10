@@ -33,6 +33,11 @@ model Workspace {
   // nao no momento da criacao do workspace. Null ate' entao.
   postizApiKey String? @map("postiz_api_key")
 
+  // Item 1 do spec 051: flag por workspace (não localStorage) pra persistir
+  // entre dispositivos/membros que acessam depois — dispara o tour guiado
+  // uma única vez, nunca reaparece depois do primeiro membro fechar/completar.
+  hasSeenProductTour Boolean @default(false) @map("has_seen_product_tour")
+
   members           WorkspaceMember[]
   brandKit          BrandKit?
   templateAssets    TemplateAsset[]

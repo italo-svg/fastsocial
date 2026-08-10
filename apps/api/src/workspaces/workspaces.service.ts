@@ -75,6 +75,52 @@ export class WorkspacesService {
     }
   }
 
+  private async assertIsMember(workspaceId: string, userId: string): Promise<void> {
+    const membership = await this.prisma.workspaceMember.findUnique({
+      where: { workspaceId_userId: { workspaceId, userId } },
+    });
+    if (!membership) {
+      throw new ForbiddenException("Você não é membro deste workspace.");
+    }
+  }
+
+  // spec 051, item 1: consultado pelo ProductTour no primeiro render pós-login.
+  async getProductTourStatus(workspaceId: string, userId: string) {
+    await this.assertIsMember(workspaceId, userId);
+    const workspace = await this.prisma.workspace.findUniqueOrThrow({ where: { id: workspaceId } });
+    return { hasSeenProductTour: workspace.hasSeenProductTour };
+  }
+
+  async markProductTourSeen(workspaceId: string, userId: string) {
+    await this.assertIsMember(workspaceId, userId);
+    const workspace = await this.prisma.workspace.update({
+      where: { id: workspaceId },
+      data: { hasSeenProductTour: true },
+    });
+    return { hasSeenProductTour: workspace.hasSeenProductTour };
+  }
+
+  // spec 051, item 2: progresso SEMPRE derivado de eventos reais do sistema,
+  // nunca de confirmação manual — cada item é uma query direta contra o
+  // estado real (conta social conectada, autopilot ativo, 1º post publicado).
+  async getOnboardingProgress(workspaceId: string, userId: string) {
+    await this.assertIsMember(workspaceId, userId);
+
+    const [connectedAccounts, autopilot, publishedCount] = await Promise.all([
+      this.prisma.socialAccount.count({ where: { workspaceId, status: "connected" } }),
+      this.prisma.autopilotPipeline.findUnique({ where: { workspaceId } }),
+      this.prisma.publication.count({
+        where: { socialAccount: { workspaceId }, status: "published" },
+      }),
+    ]);
+
+    return {
+      connectedSocialAccount: connectedAccounts > 0,
+      autopilotConfigured: !!autopilot?.isActive,
+      firstPostPublished: publishedCount > 0,
+    };
+  }
+
   async invite(workspaceId: string, inviterUserId: string, dto: InviteMemberDto) {
     await this.assertIsAdmin(workspaceId, inviterUserId);
 

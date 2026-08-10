@@ -49,6 +49,9 @@ export default function MasterPanelPage(): JSX.Element {
           <Link href="/system-prompts" className="text-sm font-medium text-primary underline">
             Prompts do Sistema
           </Link>
+          <Link href="/help-center" className="text-sm font-medium text-primary underline">
+            Central de Ajuda
+          </Link>
           <Button type="button" onClick={() => setShowProvisionModal(true)}>
             + Provisionar workspace
           </Button>

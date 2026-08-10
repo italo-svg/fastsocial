@@ -7,6 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { trackFunnelEvent } from "@/lib/analytics/track-funnel-event";
+import { ProductTour } from "@/components/onboarding-tour/ProductTour";
+import { OnboardingChecklist } from "@/components/onboarding-tour/OnboardingChecklist";
 
 function DashboardPageInner(): JSX.Element {
   const { user, logout } = useAuth();
@@ -34,10 +36,12 @@ function DashboardPageInner(): JSX.Element {
           </Button>
         </div>
       </div>
+      <OnboardingChecklist />
       <Card className="flex items-center justify-between">
         <span className="font-medium">Piloto automático</span>
         <Badge variant="neutral">Não configurado</Badge>
       </Card>
+      <ProductTour />
     </main>
   );
 }
