@@ -26,6 +26,7 @@ import { PlatformAdminModule } from "./platform-admin/platform-admin.module";
 import { AuditModule } from "./audit/audit.module";
 import { DataPrivacyModule } from "./data-privacy/data-privacy.module";
 import { BullBoardModule } from "./queue/bull-board.module";
+import { SystemHealthModule } from "./system-health/system-health.module";
 
 // Módulos de negócio (specs 012 em diante) serão importados aqui conforme forem criados.
 @Module({
@@ -62,6 +63,7 @@ import { BullBoardModule } from "./queue/bull-board.module";
     AuditModule,
     DataPrivacyModule,
     BullBoardModule,
+    SystemHealthModule,
   ],
   providers: [ErrorTrackingService, { provide: APP_FILTER, useClass: ErrorTrackingFilter }],
 })

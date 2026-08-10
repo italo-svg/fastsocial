@@ -35,4 +35,5 @@ export const envValidationSchema = Joi.object({
   STRIPE_WEBHOOK_SECRET: Joi.string().optional(),
   RESEND_API_KEY: Joi.string().optional(),
   GLITCHTIP_DSN: Joi.string().optional(),
+  GLITCHTIP_URL: Joi.string().uri().optional(),
 }).unknown(true);
