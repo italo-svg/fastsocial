@@ -73,7 +73,11 @@ export class StripeWebhookHandlerService {
       this.logger.warn(`customer.subscription.updated sem workspace correspondente (customer ${subscription.customer}).`);
       return;
     }
-    const currentPeriodEnd = subscription.items.data[0]?.current_period_end;
+    // Cast: a API do Stripe ainda retorna current_period_end no nível da
+    // subscription (não só por item), mas os tipos do SDK v17 não o expõem
+    // mais em Stripe.Subscription — cast pragmático em vez de reestruturar
+    // em torno de um tipo desatualizado do próprio pacote.
+    const currentPeriodEnd = (subscription as unknown as { current_period_end?: number }).current_period_end;
     await this.prisma.subscription.update({
       where: { workspaceId },
       data: {
