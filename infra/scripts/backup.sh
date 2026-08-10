@@ -41,19 +41,39 @@ else
   N8N_DUMP=""
 fi
 
-echo "==> Compactando..."
-ARCHIVE="${WORKDIR}/fastsocial-backup-${TIMESTAMP}.tar.gz"
-FILES_TO_ARCHIVE="$(basename "$POSTIZ_DUMP")"
-if [ -n "$N8N_DUMP" ]; then
-  FILES_TO_ARCHIVE="${FILES_TO_ARCHIVE} $(basename "$N8N_DUMP")"
-fi
-tar -czf "$ARCHIVE" -C "$WORKDIR" $FILES_TO_ARCHIVE
+# Achado real ao validar este script (spec 043): o SQLite do n8n em uso pela
+# agência chegou a 480MB no momento do teste — dados de execução de workflow
+# acumulados (comportamento default conhecido do n8n; recomendação oficial é
+# configurar EXECUTIONS_DATA_PRUNE, fora do escopo deste script). Isso excede
+# o limite padrão de upload do storage-api do Supabase self-hospedado (~50MB
+# — configurado no próprio container, não por bucket, então elevá-lo exigiria
+# reiniciar um serviço compartilhado com tráfego real de produção, o que não
+# fizemos sem combinar antes com o usuário). Upload de cada arquivo em
+# separado (em vez de um .tar.gz único) reduz o problema mas não o resolve
+# se o SQLite sozinho já excede o limite — por isso o dump do Postiz (pequeno)
+# sempre sobe; o do n8n só sobe se couber, com aviso claro caso não caiba.
+UPLOAD_LIMIT_BYTES=52428800  # 50MB, mesmo default do storage-api do Supabase
 
-echo "==> Upload para o bucket 'backups' do Supabase Storage..."
-curl -sf -X POST "${SUPABASE_URL}/storage/v1/object/backups/$(basename "$ARCHIVE")" \
-  -H "Authorization: Bearer ${SUPABASE_SERVICE_ROLE_KEY}" \
-  -H "apikey: ${SUPABASE_SERVICE_ROLE_KEY}" \
-  -H "Content-Type: application/gzip" \
-  --data-binary "@${ARCHIVE}" \
-  && echo "==> Backup enviado: $(basename "$ARCHIVE")" \
-  || { echo "ERRO: falha ao subir o backup pro Storage."; exit 1; }
+upload_file() {
+  local filepath="$1"
+  local filename
+  filename="$(basename "$filepath")"
+  local size
+  size="$(stat -c%s "$filepath" 2>/dev/null || stat -f%z "$filepath")"
+  if [ "$size" -gt "$UPLOAD_LIMIT_BYTES" ]; then
+    echo "AVISO: ${filename} tem $((size / 1024 / 1024))MB, acima do limite de upload do Storage — pulando (ver comentário no topo do script)."
+    return 1
+  fi
+  curl -sf -X POST "${SUPABASE_URL}/storage/v1/object/backups/${filename}" \
+    -H "Authorization: Bearer ${SUPABASE_SERVICE_ROLE_KEY}" \
+    -H "apikey: ${SUPABASE_SERVICE_ROLE_KEY}" \
+    -H "Content-Type: application/octet-stream" \
+    --data-binary "@${filepath}" \
+    && echo "==> Backup enviado: ${filename}"
+}
+
+echo "==> Upload para o bucket 'backups' do Supabase Storage (um arquivo por vez)..."
+upload_file "$POSTIZ_DUMP" || echo "ERRO: dump do Postiz não foi enviado."
+if [ -n "$N8N_DUMP" ]; then
+  upload_file "$N8N_DUMP" || true
+fi

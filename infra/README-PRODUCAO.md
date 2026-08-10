@@ -93,20 +93,36 @@ docker compose -f /opt/fastsocial/infra/docker-compose.prod.yml ps
 ## Restaurar de um backup
 
 ```bash
-# 1. Baixar o dump mais recente do bucket "backups" do Supabase Storage
-curl -o backup.tar.gz "https://supabase.fastsocial.volupia.cloud/storage/v1/object/public/backups/<arquivo>.tar.gz"
-tar -xzf backup.tar.gz
+# 1. Baixar o(s) dump(s) do bucket privado "backups" do Supabase Storage
+#    (arquivos separados, não um .tar.gz único — ver nota de tamanho abaixo)
+curl -o postiz-<timestamp>.sql \
+  -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" -H "apikey: $SUPABASE_SERVICE_ROLE_KEY" \
+  "https://supabase.fastsocial.volupia.cloud/storage/v1/object/backups/postiz-<timestamp>.sql"
 
 # 2. Restaurar o Postgres do Postiz (CUIDADO: sobrescreve o banco atual —
-#    confirmar que é isso mesmo antes de rodar)
+#    confirmar que é isso mesmo antes de rodar; testar antes num container
+#    Postgres descartável se não tiver certeza)
 docker run --rm -i --network easypanel postgres:17 \
   psql "$POSTIZ_DATABASE_URL" < postiz-<timestamp>.sql
 
-# 3. Restaurar o SQLite do n8n (com o container parado)
-docker stop volupia_n8n
-docker cp n8n-database-<timestamp>.sqlite volupia_n8n:/home/node/.n8n/database.sqlite
-docker start volupia_n8n
+# 3. Restaurar o SQLite do n8n (com o container parado) — só possível se o
+#    backup do n8n coube no limite de upload do Storage, ver nota abaixo
+docker stop <nome-real-do-container-n8n>   # `docker ps --filter name=volupia_n8n`
+docker cp n8n-database-<timestamp>.sqlite <nome-real-do-container-n8n>:/home/node/.n8n/database.sqlite
+docker start <nome-real-do-container-n8n>
 ```
+
+> **Achado real ao validar `backup.sh` neste spec:** o arquivo SQLite do n8n em uso pela
+> agência estava com **480MB** (dados de execução de workflow acumulados — comportamento
+> default conhecido do n8n; a correção de fundo é configurar `EXECUTIONS_DATA_PRUNE` na
+> instância do n8n, fora do escopo deste projeto). Isso excede o limite padrão de upload
+> (~50MB) do `storage-api` do Supabase self-hospedado — limite configurado no próprio
+> container, não por bucket, então elevá-lo exige reiniciar um serviço compartilhado com
+> tráfego real de produção (não feito sem combinar com o usuário antes). `backup.sh` detecta
+> isso e pula o upload do n8n com um aviso claro em vez de falhar o backup inteiro — o dump do
+> Postiz (pequeno, ~80KB) sempre sobe normalmente. Enquanto isso não for resolvido, o backup do
+> n8n precisa ser feito manualmente (`docker cp` pra fora do VPS) até a política de retenção de
+> execuções do n8n reduzir o tamanho do arquivo ou o limite do Storage ser elevado.
 
 ## Agendar backup diário (cron do SO, não de container)
 
