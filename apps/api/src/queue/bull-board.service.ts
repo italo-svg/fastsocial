@@ -37,7 +37,7 @@ export class BullBoardService {
     // incompatibilidade só de tipos entre as duas libs, não de runtime (o
     // pacote funciona normalmente com qualquer Queue real do BullMQ).
     createBullBoard({
-      queues: [new BullMQAdapter(this.publishQueue), new BullMQAdapter(this.dataExportQueue)] as never,
+      queues: [new BullMQAdapter(this.publishQueue), new BullMQAdapter(this.dataExportQueue)],
       serverAdapter,
     });
 
