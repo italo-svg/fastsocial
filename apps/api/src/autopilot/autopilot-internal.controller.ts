@@ -7,7 +7,7 @@ import { ImageGenerationService } from "../image-generation/image-generation.ser
 import { TemplatesService } from "../templates/templates.service";
 import { StockImagesService } from "../image-sources/stock-images.service";
 import type { ImageOrientation } from "../image-sources/adapters/stock-image-adapter.interface";
-import { AutopilotInternalService, DueWorkspace, NextInsightsResponse } from "./autopilot-internal.service";
+import { AutopilotInternalService, DueWorkspace, NextInsightsResponse, PipelineConfig } from "./autopilot-internal.service";
 import { ResearchScanDto } from "./dto/research-scan.dto";
 import { InternalGenerateCopyDto } from "./dto/internal-copy-generate.dto";
 import { InternalCreateContentPieceDto } from "./dto/internal-create-content-piece.dto";
@@ -44,6 +44,13 @@ export class AutopilotInternalController {
   @Get(":workspaceId/next-insights")
   nextInsights(@Param("workspaceId") workspaceId: string): Promise<NextInsightsResponse> {
     return this.autopilotInternalService.nextInsightsAndMark(workspaceId);
+  }
+
+  // Consumido pelo workflow de agendamento (spec 035) para calcular o próximo
+  // horário dentro dos preferredTimes configurados.
+  @Get(":workspaceId/pipeline-config")
+  pipelineConfig(@Param("workspaceId") workspaceId: string): Promise<PipelineConfig> {
+    return this.autopilotInternalService.getPipelineConfig(workspaceId);
   }
 
   // Desvio consciente do texto literal do spec 033: em vez de reusar

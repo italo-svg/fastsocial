@@ -1,5 +1,6 @@
-import { BadRequestException, ConflictException, Injectable, NotFoundException } from "@nestjs/common";
+import { BadRequestException, ConflictException, Injectable, Logger, NotFoundException } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
+import { createHmac } from "node:crypto";
 import { PrismaService } from "../prisma/prisma.service";
 import { StorageService } from "../common/services/storage.service";
 import { CreateContentPieceDto } from "./dto/create-content-piece.dto";
@@ -24,6 +25,8 @@ export interface RenderEngineResponse {
 
 @Injectable()
 export class ContentPiecesService {
+  private readonly logger = new Logger(ContentPiecesService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly storage: StorageService,
@@ -95,10 +98,14 @@ export class ContentPiecesService {
       throw err;
     }
 
-    return this.prisma.contentPiece.update({
+    const updated = await this.prisma.contentPiece.update({
       where: { id },
       data: { status: targetStatus },
     });
+    if (targetStatus === "approved") {
+      await this.notifyApproved(workspaceId, id);
+    }
+    return updated;
   }
 
   async approve(workspaceId: string, id: string) {
@@ -124,7 +131,44 @@ export class ContentPiecesService {
       throw err;
     }
 
-    return this.prisma.contentPiece.update({ where: { id }, data: { status: targetStatus } });
+    const updated = await this.prisma.contentPiece.update({ where: { id }, data: { status: targetStatus } });
+    if (targetStatus === "approved") {
+      await this.notifyApproved(workspaceId, id);
+    }
+    return updated;
+  }
+
+  // Dispara o workflow de agendamento do n8n (spec 035) sempre que uma peça
+  // entra em "approved" — seja por aprovação humana (approve(), spec 026) ou
+  // por auto-aprovação do autopilot (submitForApproval() com autoApprove=true
+  // e sem slide ai_generated, spec 034). Assinado com N8N_WEBHOOK_SECRET
+  // (HMAC-SHA256) para o workflow rejeitar chamadas forjadas (CA-03). Falha
+  // aqui nunca deve impedir a aprovação em si — só loga o erro; o n8n também
+  // tem seu próprio cron de segurança para pegar aprovações perdidas
+  // (documentado em scheduling-pipeline.json).
+  private async notifyApproved(workspaceId: string, contentPieceId: string): Promise<void> {
+    const n8nUrl = this.config.get<string>("N8N_API_URL");
+    const secret = this.config.get<string>("N8N_WEBHOOK_SECRET");
+    if (!n8nUrl || !secret) {
+      this.logger.warn("N8N_API_URL/N8N_WEBHOOK_SECRET não configurados — webhook de aprovação não disparado.");
+      return;
+    }
+
+    const payload = JSON.stringify({ contentPieceId, workspaceId });
+    const signature = createHmac("sha256", secret).update(payload).digest("hex");
+
+    try {
+      const res = await fetch(`${n8nUrl}/webhook/content-approved`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-N8N-Signature": signature },
+        body: payload,
+      });
+      if (!res.ok) {
+        this.logger.error(`Webhook de aprovação para o n8n falhou: ${res.status} ${await res.text()}`);
+      }
+    } catch (err) {
+      this.logger.error(`Erro ao chamar o webhook de aprovação do n8n: ${(err as Error).message}`);
+    }
   }
 
   // Troca o template de uma peca ja criada SEM recriar os slides existentes — so'

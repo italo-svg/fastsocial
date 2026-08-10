@@ -22,7 +22,18 @@ export interface NextInsightsResponse {
   insights: NextInsight[];
 }
 
+export interface PipelineConfig {
+  preferredTimes: string[];
+  requiresApproval: boolean;
+}
+
 const CADENCE_WINDOW_DAYS = 7;
+
+// Mesmo default do schema.prisma (autopilot_pipelines.preferred_times) — usado
+// quando o workspace nunca configurou um piloto automático (spec 035: mesmo
+// workspace 100% manual precisa de um horário-padrão para o workflow de
+// agendamento calcular o próximo slot).
+const DEFAULT_PREFERRED_TIMES = ["09:00", "18:00"];
 
 @Injectable()
 export class AutopilotInternalService {
@@ -100,6 +111,22 @@ export class AutopilotInternalService {
         suggestedFormat: i.suggestedFormat,
         relevanceScore: Number(i.relevanceScore),
       })),
+    };
+  }
+
+  // Usado pelo workflow de agendamento (spec 035) para calcular o próximo
+  // horário dentro dos preferredTimes configurados. Workspaces sem piloto
+  // automático configurado (nunca criaram uma linha em autopilot_pipelines)
+  // caem no default do schema em vez de dar 404 — agendar uma peça aprovada
+  // manualmente não deveria depender de o workspace ter ativado o autopilot.
+  async getPipelineConfig(workspaceId: string): Promise<PipelineConfig> {
+    const pipeline = await this.prisma.autopilotPipeline.findUnique({ where: { workspaceId } });
+    if (!pipeline) {
+      return { preferredTimes: DEFAULT_PREFERRED_TIMES, requiresApproval: true };
+    }
+    return {
+      preferredTimes: pipeline.preferredTimes as string[],
+      requiresApproval: pipeline.requiresApproval,
     };
   }
 }

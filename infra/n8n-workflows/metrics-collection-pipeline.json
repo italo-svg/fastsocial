@@ -1,0 +1,113 @@
+{
+  "name": "FastSocial - Coleta de Métricas (Autopilot)",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 7 * * *"
+            }
+          ]
+        }
+      },
+      "id": "trigger-cron-diario",
+      "name": "Cron Diário 07:00",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "http://fastsocial-api-prod:3333/api/v1/internal/publications/pending-metrics-collection",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "id": "http-pending-metrics",
+      "name": "Buscar Publications Elegíveis",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [460, 300],
+      "credentials": {
+        "httpHeaderAuth": { "id": "fastsocial-service-token", "name": "FastSocial Service Token" }
+      }
+    },
+    {
+      "parameters": {
+        "batchSize": 1,
+        "options": {}
+      },
+      "id": "loop-publications",
+      "name": "Loop Publications",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "PENDENTE — endpoint do spec 038 (analytics-coleta-metricas) ainda não existe",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            { "name": "publicationId", "value": "={{ $json.id }}" },
+            { "name": "network", "value": "={{ $json.socialAccount.network }}" },
+            { "name": "externalAccountId", "value": "={{ $json.socialAccount.externalAccountId }}" }
+          ]
+        },
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "id": "http-coletar-metricas",
+      "name": "Coletar Métricas (BLOQUEADO — spec 038)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [900, 200],
+      "continueOnFail": true,
+      "notes": "URL provisória — este node não deve ser ativado até o spec 038 entregar um endpoint real (algo como POST /internal/publications/:id/analytics-snapshot) que consulte a Graph API/LinkedIn API para esta publication específica e grave um analytics_snapshots. Documentado assim em vez de fingir uma URL funcional, conforme instrução explícita do spec 035.",
+      "credentials": {
+        "httpHeaderAuth": { "id": "fastsocial-service-token", "name": "FastSocial Service Token" }
+      }
+    },
+    {
+      "parameters": {
+        "amount": 2
+      },
+      "id": "wait-entre-publications",
+      "name": "Aguardar (rate limit)",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [1120, 200]
+    }
+  ],
+  "connections": {
+    "Cron Diário 07:00": {
+      "main": [[{ "node": "Buscar Publications Elegíveis", "type": "main", "index": 0 }]]
+    },
+    "Buscar Publications Elegíveis": {
+      "main": [[{ "node": "Loop Publications", "type": "main", "index": 0 }]]
+    },
+    "Loop Publications": {
+      "main": [
+        [{ "node": "Coletar Métricas (BLOQUEADO — spec 038)", "type": "main", "index": 0 }],
+        []
+      ]
+    },
+    "Coletar Métricas (BLOQUEADO — spec 038)": {
+      "main": [[{ "node": "Aguardar (rate limit)", "type": "main", "index": 0 }]]
+    },
+    "Aguardar (rate limit)": {
+      "main": [[{ "node": "Loop Publications", "type": "main", "index": 0 }]]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "notes": "NÃO ATIVAR em produção ainda: o node 'Coletar Métricas' aponta para um endpoint que o spec 038 (analytics-coleta-metricas) ainda não implementou. A parte de descoberta (GET /internal/publications/pending-metrics-collection, spec 035) já está pronta e testável isoladamente — CA-04 (janela 24h-30 dias) já pode ser validado hoje. CA-05 (ciclo ponta a ponta completo) depende do spec 038."
+}

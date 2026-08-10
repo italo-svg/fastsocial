@@ -1,0 +1,193 @@
+{
+  "name": "FastSocial - Agendamento de Publicação (Autopilot)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "content-approved",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-content-approved",
+      "name": "Webhook - Peça Aprovada",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Verifica a assinatura HMAC-SHA256 do header X-N8N-Signature (spec 035, CA-03).\n// A FastSocial API assina com: createHmac('sha256', N8N_WEBHOOK_SECRET).update(JSON.stringify({ contentPieceId, workspaceId })).digest('hex')\n// (ver content-pieces.service.ts#notifyApproved) — a ordem das chaves no\n// objeto reconstruído aqui TEM que bater exatamente com a ordem lá\n// (contentPieceId primeiro, workspaceId depois), senão a assinatura nunca\n// confere mesmo com o segredo certo.\n//\n// PRÉ-REQUISITO deste node: a instância do n8n precisa permitir acesso a\n// variáveis de ambiente dentro de Code nodes (N8N_BLOCK_ENV_ACCESS_IN_NODE\n// não pode estar habilitado para N8N_WEBHOOK_SECRET). Como este n8n é\n// compartilhado com outros workflows da agência (spec 032), isso não pôde\n// ser confirmado neste spec sem acesso à configuração de ambiente do\n// container — validar antes de ativar este workflow em produção.\nconst crypto = require('crypto');\n\nconst body = $input.item.json.body ?? {};\nconst headers = $input.item.json.headers ?? {};\nconst receivedSignature = headers['x-n8n-signature'] ?? '';\nconst secret = $env.N8N_WEBHOOK_SECRET ?? '';\n\nconst payload = JSON.stringify({ contentPieceId: body.contentPieceId, workspaceId: body.workspaceId });\nconst expectedSignature = crypto.createHmac('sha256', secret).update(payload).digest('hex');\n\nconst valid = !!secret && receivedSignature === expectedSignature;\n\nreturn [{ json: { valid, contentPieceId: body.contentPieceId, workspaceId: body.workspaceId } }];"
+      },
+      "id": "validar-assinatura",
+      "name": "Validar Assinatura HMAC",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.valid }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "true" }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "assinatura-valida",
+      "name": "Assinatura Válida?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { \"error\": \"Assinatura inválida\" } }}",
+        "options": { "responseCode": 401 }
+      },
+      "id": "responder-nao-autorizado",
+      "name": "Responder 401",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.2,
+      "position": [900, 460]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=http://fastsocial-api-prod:3333/api/v1/internal/autopilot/{{ $json.workspaceId }}/pipeline-config",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "id": "http-pipeline-config",
+      "name": "Buscar Config do Pipeline",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [900, 200],
+      "credentials": {
+        "httpHeaderAuth": { "id": "fastsocial-service-token", "name": "FastSocial Service Token" }
+      }
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=http://fastsocial-api-prod:3333/api/v1/internal/social-accounts/{{ $('Validar Assinatura HMAC').item.json.workspaceId }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "id": "http-social-accounts",
+      "name": "Buscar Contas Sociais",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1120, 200],
+      "credentials": {
+        "httpHeaderAuth": { "id": "fastsocial-service-token", "name": "FastSocial Service Token" }
+      }
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=http://fastsocial-api-prod:3333/api/v1/internal/publications/{{ $('Validar Assinatura HMAC').item.json.workspaceId }}/upcoming",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "id": "http-upcoming",
+      "name": "Buscar Agendamentos Futuros",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1340, 200],
+      "credentials": {
+        "httpHeaderAuth": { "id": "fastsocial-service-token", "name": "FastSocial Service Token" }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Calcula o próximo horário dentro de preferredTimes (ex: [\"09:00\",\"18:00\"])\n// com espaçamento mínimo de 30 minutos em relação a qualquer publicação já\n// agendada para o workspace (CA-02) — em vez de só repetir cegamente o\n// mesmo preferred_time toda vez que uma peça é aprovada.\nconst MIN_SPACING_MINUTES = 30;\nconst SEARCH_DAYS_AHEAD = 30;\n\nconst preferredTimes = $('Buscar Config do Pipeline').item.json.preferredTimes ?? ['09:00', '18:00'];\nconst upcoming = $('Buscar Agendamentos Futuros').all().map(i => new Date(i.json.scheduledAt).getTime());\nconst accounts = $('Buscar Contas Sociais').all().map(i => i.json).filter(a => a.status === 'connected');\n\n// Seleção do MVP: primeira conta conectada do workspace. Melhoria futura\n// (mesmo racional documentado no spec 034 para escolha de template):\n// escolher por rede/desempenho em vez de pegar a primeira.\nconst socialAccountId = accounts.length > 0 ? accounts[0].id : null;\n\nfunction collides(candidateMs) {\n  return upcoming.some(t => Math.abs(t - candidateMs) < MIN_SPACING_MINUTES * 60 * 1000);\n}\n\nconst now = Date.now();\nlet chosen = null;\nfor (let dayOffset = 0; dayOffset < SEARCH_DAYS_AHEAD && !chosen; dayOffset++) {\n  for (const time of preferredTimes) {\n    const [h, m] = time.split(':').map(Number);\n    const candidate = new Date();\n    candidate.setDate(candidate.getDate() + dayOffset);\n    candidate.setHours(h, m, 0, 0);\n    const candidateMs = candidate.getTime();\n    if (candidateMs <= now) continue;\n    if (collides(candidateMs)) continue;\n    chosen = candidate;\n    break;\n  }\n}\n\nif (!chosen) {\n  throw new Error('Não foi possível achar um horário livre nos próximos ' + SEARCH_DAYS_AHEAD + ' dias — agenda do workspace está saturada.');\n}\n\nreturn [{\n  json: {\n    workspaceId: $('Validar Assinatura HMAC').item.json.workspaceId,\n    contentPieceId: $('Validar Assinatura HMAC').item.json.contentPieceId,\n    socialAccountId,\n    scheduledAt: chosen.toISOString(),\n  },\n}];"
+      },
+      "id": "calcular-horario",
+      "name": "Calcular Próximo Horário",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1560, 200]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=http://fastsocial-api-prod:3333/api/v1/internal/publications/{{ $json.workspaceId }}/{{ $json.contentPieceId }}/schedule",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            { "name": "socialAccountId", "value": "={{ $json.socialAccountId }}" },
+            { "name": "scheduledAt", "value": "={{ $json.scheduledAt }}" }
+          ]
+        },
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "id": "http-agendar",
+      "name": "Agendar Publicação",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1780, 200],
+      "credentials": {
+        "httpHeaderAuth": { "id": "fastsocial-service-token", "name": "FastSocial Service Token" }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {}
+      },
+      "id": "responder-sucesso",
+      "name": "Responder 200",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.2,
+      "position": [2000, 200]
+    }
+  ],
+  "connections": {
+    "Webhook - Peça Aprovada": {
+      "main": [[{ "node": "Validar Assinatura HMAC", "type": "main", "index": 0 }]]
+    },
+    "Validar Assinatura HMAC": {
+      "main": [[{ "node": "Assinatura Válida?", "type": "main", "index": 0 }]]
+    },
+    "Assinatura Válida?": {
+      "main": [
+        [{ "node": "Buscar Config do Pipeline", "type": "main", "index": 0 }],
+        [{ "node": "Responder 401", "type": "main", "index": 0 }]
+      ]
+    },
+    "Buscar Config do Pipeline": {
+      "main": [[{ "node": "Buscar Contas Sociais", "type": "main", "index": 0 }]]
+    },
+    "Buscar Contas Sociais": {
+      "main": [[{ "node": "Buscar Agendamentos Futuros", "type": "main", "index": 0 }]]
+    },
+    "Buscar Agendamentos Futuros": {
+      "main": [[{ "node": "Calcular Próximo Horário", "type": "main", "index": 0 }]]
+    },
+    "Calcular Próximo Horário": {
+      "main": [[{ "node": "Agendar Publicação", "type": "main", "index": 0 }]]
+    },
+    "Agendar Publicação": {
+      "main": [[{ "node": "Responder 200", "type": "main", "index": 0 }]]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "notes": "Pré-requisito não confirmado neste spec: Code node 'Validar Assinatura HMAC' precisa ler $env.N8N_WEBHOOK_SECRET — confirmar que a instância do n8n permite acesso a variáveis de ambiente em Code nodes antes de ativar em produção (ver comentário dentro do node). Endpoints /internal/autopilot/pipeline-config, /internal/social-accounts e /internal/publications/upcoming|schedule são espelhos criados no spec 035 especificamente para este workflow, guardados por ServiceTokenGuard (credencial 'fastsocial-service-token', mesma dos specs 032/033/034)."
+}

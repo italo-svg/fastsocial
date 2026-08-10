@@ -96,6 +96,38 @@ export class PublicationsService {
     return updated;
   }
 
+  // Consumido pelo workflow de coleta de métricas (spec 035, cron diário):
+  // publications publicadas há 24h-30 dias, sem snapshot capturado nas
+  // últimas 24h (permite recoleta diária dentro da janela, sem duplicar
+  // chamada à Graph API/LinkedIn API se o cron rodar 2x no mesmo dia).
+  async pendingMetricsCollection() {
+    const now = Date.now();
+    const windowStart = new Date(now - 30 * 24 * 60 * 60 * 1000);
+    const windowEnd = new Date(now - 24 * 60 * 60 * 1000);
+    const recentSnapshotCutoff = new Date(now - 24 * 60 * 60 * 1000);
+
+    return this.prisma.publication.findMany({
+      where: {
+        status: "published",
+        publishedAt: { gte: windowStart, lte: windowEnd },
+        analyticsSnapshots: { none: { capturedAt: { gte: recentSnapshotCutoff } } },
+      },
+      include: { contentPiece: { select: { workspaceId: true } }, socialAccount: true },
+      orderBy: { publishedAt: "asc" },
+    });
+  }
+
+  // Consumido pelo workflow de agendamento (spec 035, CA-02) para calcular um
+  // horário com espaçamento mínimo em relação ao que já está agendado, em vez
+  // de simplesmente repetir o mesmo preferred_time toda vez.
+  upcomingScheduled(workspaceId: string) {
+    return this.prisma.publication.findMany({
+      where: { contentPiece: { workspaceId }, status: "scheduled", scheduledAt: { gte: new Date() } },
+      select: { scheduledAt: true },
+      orderBy: { scheduledAt: "asc" },
+    });
+  }
+
   private async findOwned(workspaceId: string, publicationId: string) {
     const publication = await this.prisma.publication.findFirst({
       where: { id: publicationId, contentPiece: { workspaceId } },
