@@ -18,5 +18,6 @@ import { LinkedInTokenRefreshJob } from "./linkedin/linkedin-token-refresh.job";
     LinkedInPublishService,
     LinkedInTokenRefreshJob,
   ],
+  exports: [PostizClientService, LinkedInPublishService],
 })
 export class SocialAccountsModule {}

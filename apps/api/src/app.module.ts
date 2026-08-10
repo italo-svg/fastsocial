@@ -1,6 +1,7 @@
 import { Module } from "@nestjs/common";
-import { ConfigModule } from "@nestjs/config";
+import { ConfigModule, ConfigService } from "@nestjs/config";
 import { ScheduleModule } from "@nestjs/schedule";
+import { BullModule } from "@nestjs/bullmq";
 import { envValidationSchema } from "./config/env.validation";
 import { PrismaModule } from "./prisma/prisma.module";
 import { HealthModule } from "./health/health.module";
@@ -14,6 +15,7 @@ import { ContentPiecesModule } from "./content-pieces/content-pieces.module";
 import { ResearchModule } from "./research/research.module";
 import { CopyGenerationModule } from "./copy-generation/copy-generation.module";
 import { SocialAccountsModule } from "./social-accounts/social-accounts.module";
+import { PublicationsModule } from "./publications/publications.module";
 
 // Módulos de negócio (specs 012 em diante) serão importados aqui conforme forem criados.
 @Module({
@@ -24,6 +26,12 @@ import { SocialAccountsModule } from "./social-accounts/social-accounts.module";
       validationOptions: { abortEarly: false },
     }),
     ScheduleModule.forRoot(),
+    BullModule.forRootAsync({
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => ({
+        connection: { url: config.get<string>("REDIS_URL") ?? "redis://fastsocial-redis:6379" },
+      }),
+    }),
     PrismaModule,
     HealthModule,
     AuthModule,
@@ -36,6 +44,7 @@ import { SocialAccountsModule } from "./social-accounts/social-accounts.module";
     ResearchModule,
     CopyGenerationModule,
     SocialAccountsModule,
+    PublicationsModule,
   ],
 })
 export class AppModule {}

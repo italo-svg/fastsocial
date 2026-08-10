@@ -9,6 +9,7 @@ Este documento existe porque, até o spec `043` formalizar o deploy via `docker-
 | `fastsocial-api-prod` | `fastsocial-api:dev` | `easypanel` + `supabase_default` | `https://api.fastsocial.volupia.cloud` |
 | `fastsocial-web-auth` | `fastsocial-web:dev` | `easypanel` | `https://app.fastsocial.volupia.cloud` |
 | `fastsocial-render-engine` | `fastsocial-render-engine:dev` | `easypanel` | Interno apenas (spec 015) — `127.0.0.1:3334` no servidor, sem rota pública no Traefik de propósito (nunca deve ser exposto). A API o alcança por nome de container na rede `easypanel` (`http://fastsocial-render-engine:3334`). |
+| `fastsocial-redis` | `redis:7-alpine` | `easypanel` | Interno apenas (spec 030) — fila BullMQ de agendamento/publicação. Dados persistidos em volume nomeado `fastsocial-redis-data` (AOF ativado). A API o alcança em `redis://fastsocial-redis:6379`. |
 
 Roteamento em `/etc/easypanel/traefik/config/fastsocial.yaml` (arquivo próprio, não gerado pelo Easypanel — ver `infra/supabase/README.md` para a explicação de por que essa abordagem existe).
 
@@ -24,7 +25,11 @@ docker rm -f fastsocial-api-prod
 docker run -d --name fastsocial-api-prod --network easypanel \
   -e DATABASE_URL=... -e SUPABASE_URL=... -e SUPABASE_ANON_KEY=... \
   -e SUPABASE_SERVICE_ROLE_KEY=... -e SUPABASE_JWT_SECRET=... -e APP_BASE_URL=... \
+  -e API_PUBLIC_URL=... -e POSTIZ_API_URL=... -e POSTIZ_DATABASE_URL=... \
+  -e TOKEN_ENCRYPTION_KEY=... -e LINKEDIN_API_VERSION=202501 \
+  -e LINKEDIN_CLIENT_ID=... -e LINKEDIN_CLIENT_SECRET=... -e REDIS_URL=redis://fastsocial-redis:6379 \
   fastsocial-api:dev
+# ^ ver .env.example para a lista completa e atualizada — este bloco só ilustra o padrão de comando.
 docker network connect supabase_default fastsocial-api-prod
 
 # Web (build-args obrigatorios — ver .specs/shared/como-executar.md, secao "Gotcha")
@@ -35,6 +40,11 @@ cd ../web && docker build \
   -t fastsocial-web:dev .
 docker rm -f fastsocial-web-auth
 docker run -d --name fastsocial-web-auth --network easypanel -p 127.0.0.1:3002:3000 fastsocial-web:dev
+
+# Redis (fila BullMQ, spec 030 — só precisa subir uma vez, não faz parte do ciclo de rebuild)
+docker volume create fastsocial-redis-data
+docker run -d --name fastsocial-redis --network easypanel --restart unless-stopped \
+  -v fastsocial-redis-data:/data redis:7-alpine redis-server --appendonly yes
 
 # Render Engine (imagem grande, ~1.5GB — base mcr.microsoft.com/playwright ja traz Chromium)
 cd ../../services/render-engine && docker build -t fastsocial-render-engine:dev .
@@ -51,5 +61,6 @@ Anexar uma rede overlay (`easypanel`) a um container **já rodando** via `docker
 ## Dados de teste no banco
 
 Usuários e workspaces de teste (specs 006-008) continuam no banco — úteis para os próximos specs, não foram removidos:
-- `teste-validacao@fastsocial.dev` — membro de `workspace-a` (admin) e `workspace-b` (viewer)
+- `teste-validacao@fastsocial.dev` — membro de `workspace-a` (admin) e `workspace-b` (viewer). Senha resetada durante a validação do spec 028 via Supabase Admin API (a original não era conhecida): `ValidacaoTask028!`.
 - `teste-b@fastsocial.dev` — membro de `workspace-b` (admin)
+- `workspace-a` = `697084da-84ae-4db4-b49f-04fbf2bd4dc7`, `workspace-b` = `f33932c5-ade6-4a28-b178-0e3f713b07f0` (ids reais, úteis para testes via curl com `X-Workspace-Id`).

@@ -57,7 +57,11 @@ NEXT_PUBLIC_SUPABASE_URL=https://supabase.<dominio-do-projeto>
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
 
 # Infra própria
-REDIS_URL=redis://redis:6379
+# REDIS_URL: fila de agendamento/publicação via BullMQ (spec 030). Container
+# real no VPS: fastsocial-redis (rede easypanel), subido via
+# `docker run -d --name fastsocial-redis --network easypanel --restart unless-stopped
+#   -v fastsocial-redis-data:/data redis:7-alpine redis-server --appendonly yes`
+REDIS_URL=redis://fastsocial-redis:6379
 
 # IA
 ANTHROPIC_API_KEY=

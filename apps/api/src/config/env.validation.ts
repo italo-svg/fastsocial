@@ -26,4 +26,5 @@ export const envValidationSchema = Joi.object({
   LINKEDIN_CLIENT_SECRET: Joi.string().optional(),
   LINKEDIN_API_VERSION: Joi.string().optional(),
   TOKEN_ENCRYPTION_KEY: Joi.string().hex().length(64).optional(),
+  REDIS_URL: Joi.string().uri({ scheme: ["redis"] }).optional(),
 }).unknown(true);

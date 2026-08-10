@@ -41,6 +41,36 @@ export class PostizClientService {
     return (await res.json()) as PostizIntegration[];
   }
 
+  // Payload conforme a API pública v1 do Postiz (v2.11.3) — só /public/v1/integrations
+  // foi validado ao vivo até agora (spec 027/028); este endpoint de criação de
+  // post ainda não pôde ser exercitado contra uma integração real conectada,
+  // porque conectar uma integração nova ainda é a lacuna aberta do spec 028.
+  // Revisar o formato do payload assim que a primeira conta Instagram/Facebook
+  // real estiver conectada e um post de teste puder confirmar o schema.
+  async createPost(
+    apiKey: string,
+    params: { integrationId: string; content: string; mediaUrls: string[] },
+  ): Promise<{ postId: string }> {
+    const res = await fetch(`${this.apiUrl}/public/v1/posts`, {
+      method: "POST",
+      headers: { Authorization: apiKey, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        type: "now",
+        posts: [
+          {
+            integration: { id: params.integrationId },
+            value: [{ content: params.content, media: params.mediaUrls }],
+          },
+        ],
+      }),
+    });
+    if (!res.ok) {
+      throw new Error(`Falha ao publicar post no Postiz: ${res.status} ${await res.text()}`);
+    }
+    const json = (await res.json()) as { id?: string; postId?: string };
+    return { postId: json.postId ?? json.id ?? "" };
+  }
+
   async disconnectIntegration(apiKey: string, integrationId: string): Promise<void> {
     const res = await fetch(`${this.apiUrl}/public/v1/integrations/${integrationId}`, {
       method: "DELETE",
