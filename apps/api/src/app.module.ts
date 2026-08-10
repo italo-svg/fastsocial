@@ -30,6 +30,7 @@ import { SystemHealthModule } from "./system-health/system-health.module";
 import { FunnelModule } from "./funnel/funnel.module";
 import { SystemPromptsModule } from "./system-prompts/system-prompts.module";
 import { HelpCenterModule } from "./help-center/help-center.module";
+import { SupportChatModule } from "./support-chat/support-chat.module";
 
 // Módulos de negócio (specs 012 em diante) serão importados aqui conforme forem criados.
 @Module({
@@ -70,6 +71,7 @@ import { HelpCenterModule } from "./help-center/help-center.module";
     FunnelModule,
     SystemPromptsModule,
     HelpCenterModule,
+    SupportChatModule,
   ],
   providers: [ErrorTrackingService, { provide: APP_FILTER, useClass: ErrorTrackingFilter }],
 })

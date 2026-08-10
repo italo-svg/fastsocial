@@ -6,5 +6,6 @@ import { HelpCenterService } from "./help-center.service";
 @Module({
   controllers: [HelpArticlesController, ChangelogController],
   providers: [HelpCenterService],
+  exports: [HelpCenterService],
 })
 export class HelpCenterModule {}
