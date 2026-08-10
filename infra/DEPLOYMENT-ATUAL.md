@@ -64,3 +64,4 @@ Usuários e workspaces de teste (specs 006-008) continuam no banco — úteis pa
 - `teste-validacao@fastsocial.dev` — membro de `workspace-a` (admin) e `workspace-b` (viewer). Senha resetada durante a validação do spec 028 via Supabase Admin API (a original não era conhecida): `ValidacaoTask028!`.
 - `teste-b@fastsocial.dev` — membro de `workspace-b` (admin)
 - `workspace-a` = `697084da-84ae-4db4-b49f-04fbf2bd4dc7`, `workspace-b` = `f33932c5-ade6-4a28-b178-0e3f713b07f0` (ids reais, úteis para testes via curl com `X-Workspace-Id`).
+- `autopilot_pipelines` (spec 033): `workspace-a` com `is_active=true`, `workspace-b` com `is_active=false` — criados para validar `GET /internal/autopilot/active-workspaces` ao vivo. `workspace-a` não tem Brand Kit com nicho preenchido, então `POST /internal/autopilot/research-scan` falha com 400 (esperado) até alguém completar o onboarding dele.
