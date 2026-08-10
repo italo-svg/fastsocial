@@ -49,26 +49,18 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "PENDENTE — endpoint do spec 038 (analytics-coleta-metricas) ainda não existe",
-        "sendBody": true,
-        "bodyParameters": {
-          "parameters": [
-            { "name": "publicationId", "value": "={{ $json.id }}" },
-            { "name": "network", "value": "={{ $json.socialAccount.network }}" },
-            { "name": "externalAccountId", "value": "={{ $json.socialAccount.externalAccountId }}" }
-          ]
-        },
+        "url": "=http://fastsocial-api-prod:3333/api/v1/internal/publications/{{ $json.id }}/collect-metrics",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth",
         "options": {}
       },
       "id": "http-coletar-metricas",
-      "name": "Coletar Métricas (BLOQUEADO — spec 038)",
+      "name": "Coletar Métricas",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [900, 200],
       "continueOnFail": true,
-      "notes": "URL provisória — este node não deve ser ativado até o spec 038 entregar um endpoint real (algo como POST /internal/publications/:id/analytics-snapshot) que consulte a Graph API/LinkedIn API para esta publication específica e grave um analytics_snapshots. Documentado assim em vez de fingir uma URL funcional, conforme instrução explícita do spec 035.",
+      "notes": "Endpoint real do spec 038. Responde sempre HTTP 200 com {success, snapshotId?, error?} — mesmo uma falha de coleta (token expirado, rede sem coletor) não derruba o node; continueOnFail fica como rede de segurança extra para erros HTTP genuínos (ex: publicationId inexistente). Publications de rede instagram/facebook SEMPRE retornam success:false hoje (Caminho A, spec 028: Postiz não expõe insights nem o token real) — ver comentário em instagram-facebook.collector.ts. Só publications de rede linkedin (Caminho B) têm chance real de sucesso, e mesmo essas dependem de LINKEDIN_CLIENT_ID/SECRET reais e uma conta de fato conectada.",
       "credentials": {
         "httpHeaderAuth": { "id": "fastsocial-service-token", "name": "FastSocial Service Token" }
       }
@@ -93,11 +85,11 @@
     },
     "Loop Publications": {
       "main": [
-        [{ "node": "Coletar Métricas (BLOQUEADO — spec 038)", "type": "main", "index": 0 }],
+        [{ "node": "Coletar Métricas", "type": "main", "index": 0 }],
         []
       ]
     },
-    "Coletar Métricas (BLOQUEADO — spec 038)": {
+    "Coletar Métricas": {
       "main": [[{ "node": "Aguardar (rate limit)", "type": "main", "index": 0 }]]
     },
     "Aguardar (rate limit)": {
@@ -109,5 +101,5 @@
     "executionOrder": "v1"
   },
   "pinData": {},
-  "notes": "NÃO ATIVAR em produção ainda: o node 'Coletar Métricas' aponta para um endpoint que o spec 038 (analytics-coleta-metricas) ainda não implementou. A parte de descoberta (GET /internal/publications/pending-metrics-collection, spec 035) já está pronta e testável isoladamente — CA-04 (janela 24h-30 dias) já pode ser validado hoje. CA-05 (ciclo ponta a ponta completo) depende do spec 038."
+  "notes": "Spec 038 completou o node 'Coletar Métricas' com o endpoint real. Ainda não recomendado ativar em produção: (1) Instagram/Facebook sempre falha (lacuna arquitetural do Caminho A, spec 028 — ver instagram-facebook.collector.ts); (2) LinkedIn precisa de LINKEDIN_CLIENT_ID/SECRET reais e ao menos uma conta de fato conectada (pendência dos specs 029/checklist de acessos). A parte de descoberta (GET /internal/publications/pending-metrics-collection, spec 035) e a de coleta (POST .../collect-metrics, spec 038) foram validadas isoladamente com dados reais no banco."
 }

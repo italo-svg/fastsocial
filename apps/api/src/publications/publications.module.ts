@@ -9,9 +9,10 @@ import { InstagramFacebookPublisher } from "./network-publishers/instagram-faceb
 import { LinkedInPublisher } from "./network-publishers/linkedin.publisher";
 import { SocialAccountsModule } from "../social-accounts/social-accounts.module";
 import { AuthModule } from "../auth/auth.module";
+import { AnalyticsModule } from "../analytics/analytics.module";
 
 @Module({
-  imports: [BullModule.registerQueue({ name: "publish" }), SocialAccountsModule, AuthModule],
+  imports: [BullModule.registerQueue({ name: "publish" }), SocialAccountsModule, AuthModule, AnalyticsModule],
   controllers: [PublicationsController, MetricsInternalController, ScheduleInternalController],
   providers: [PublicationsService, PublishProcessor, InstagramFacebookPublisher, LinkedInPublisher],
 })

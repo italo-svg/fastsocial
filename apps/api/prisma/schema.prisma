@@ -265,12 +265,15 @@ model Publication {
 model AnalyticsSnapshot {
   id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   publicationId String   @map("publication_id") @db.Uuid
-  reach         Int      @default(0)
-  impressions   Int      @default(0)
-  likes         Int      @default(0)
-  comments      Int      @default(0)
-  shares        Int      @default(0)
-  saves         Int      @default(0)
+  // Nullable de propósito (spec 038, CA-02): nem toda rede expõe toda métrica
+  // (ex: LinkedIn não tem "saves"/"reach" na API de estatísticas de post) —
+  // null significa "a rede não expõe isso", nunca inventado como 0.
+  reach         Int?
+  impressions   Int?
+  likes         Int?
+  comments      Int?
+  shares        Int?
+  saves         Int?
   capturedAt    DateTime @default(now()) @map("captured_at")
 
   publication Publication @relation(fields: [publicationId], references: [id], onDelete: Cascade)
