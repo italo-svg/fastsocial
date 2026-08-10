@@ -1,9 +1,6 @@
-import { Injectable, UnauthorizedException } from "@nestjs/common";
+import { Injectable } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
-import { PassportStrategy } from "@nestjs/passport";
-import { Strategy } from "passport-custom";
 import { timingSafeEqual } from "node:crypto";
-import type { Request } from "express";
 
 export interface ServiceTokenPayload {
   type: "service";
@@ -16,21 +13,22 @@ export interface ServiceTokenPayload {
 // via X-Workspace-Id (WorkspaceGuard) — quem usa este guard deve receber o
 // workspace_id explicitamente no body/query de cada chamada, como qualquer
 // requisição de um processo automatizado sem sessão.
+//
+// Implementado como validador simples (não uma Passport Strategy de verdade)
+// consumido por ServiceTokenGuard — mesmo padrão de WorkspaceGuard/RolesGuard
+// já usado no projeto. Chegou a ser prototipado com passport-custom, mas o
+// pacote bundla tipos de @types/express incompatíveis com a versão do
+// projeto (erro de build real, TS2416); evitar mais uma dependência para um
+// simples compare-and-return não perde nada.
 @Injectable()
-export class ServiceTokenStrategy extends PassportStrategy(Strategy, "service-token") {
-  constructor(private readonly config: ConfigService) {
-    super();
-  }
+export class ServiceTokenStrategy {
+  constructor(private readonly config: ConfigService) {}
 
-  validate(req: Request): ServiceTokenPayload {
-    const authHeader = req.headers.authorization;
-    const token = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : undefined;
+  validate(token: string | undefined): ServiceTokenPayload | null {
     const expected = this.config.get<string>("N8N_SERVICE_TOKEN");
-
     if (!token || !expected || !constantTimeEquals(token, expected)) {
-      throw new UnauthorizedException("Token de serviço inválido ou ausente.");
+      return null;
     }
-
     return { type: "service" };
   }
 }
