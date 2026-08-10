@@ -7,5 +7,6 @@ import { PexelsAdapter } from "./adapters/pexels.adapter";
 @Module({
   controllers: [StockImagesController],
   providers: [StockImagesService, UnsplashAdapter, PexelsAdapter],
+  exports: [StockImagesService],
 })
 export class ImageSourcesModule {}

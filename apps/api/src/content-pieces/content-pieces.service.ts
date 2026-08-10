@@ -30,7 +30,11 @@ export class ContentPiecesService {
     private readonly config: ConfigService,
   ) {}
 
-  async create(workspaceId: string, dto: CreateContentPieceDto) {
+  // `origin` default "manual" cobre o fluxo humano (spec 025); o workflow de
+  // geração automática do autopilot (spec 034) passa "autopilot" explicitamente
+  // via endpoint interno — usado para calcular a cadência semanal
+  // (autopilot_pipelines.posts_per_week) contando só peças com essa origem.
+  async create(workspaceId: string, dto: CreateContentPieceDto, origin: string = "manual") {
     const template = await this.prisma.templateAsset.findFirst({
       where: { id: dto.templateId, deletedAt: null, OR: [{ isSystemTemplate: true }, { workspaceId }] },
     });
@@ -44,7 +48,7 @@ export class ContentPiecesService {
         workspaceId,
         templateId: dto.templateId,
         format: dto.format,
-        origin: "manual",
+        origin,
         copyText: dto.briefing,
         insightId: dto.insightId,
         slides: { create: Array.from({ length: slideCount }, (_, i) => ({ slideOrder: i })) },

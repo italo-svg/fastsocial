@@ -18,5 +18,6 @@ import { SceneDirectorService } from "./scene-director.service";
     AnthropicService,
     QaVisionService,
   ],
+  exports: [ImageGenerationService],
 })
 export class ImageGenerationModule {}

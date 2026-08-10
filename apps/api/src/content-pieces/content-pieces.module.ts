@@ -8,5 +8,6 @@ import { ContentPiecesService } from "./content-pieces.service";
   imports: [BrandKitModule],
   controllers: [ContentPiecesController, ApprovalController],
   providers: [ContentPiecesService],
+  exports: [ContentPiecesService],
 })
 export class ContentPiecesModule {}

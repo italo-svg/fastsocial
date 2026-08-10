@@ -9,5 +9,6 @@ import { ImportService } from "./import.service";
   imports: [BrandKitModule],
   controllers: [TemplatesController, ImportController],
   providers: [TemplatesService, ImportService],
+  exports: [TemplatesService],
 })
 export class TemplatesModule {}

@@ -1,0 +1,371 @@
+{
+  "name": "FastSocial - Geração de Conteúdo (Autopilot)",
+  "nodes": [
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [{ "name": "workspaceId" }]
+        }
+      },
+      "id": "trigger-workspace-input",
+      "name": "Trigger (workspaceId)",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [200, 300]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=http://fastsocial-api-prod:3333/api/v1/internal/autopilot/{{$json.workspaceId}}/next-insights",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "id": "http-next-insights",
+      "name": "Buscar Próximos Insights",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [420, 300],
+      "credentials": {
+        "httpHeaderAuth": { "id": "fastsocial-service-token", "name": "FastSocial Service Token" }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const workspaceId = $('Trigger (workspaceId)').item.json.workspaceId;\nconst formatMix = $json.formatMix || { static_post: 0.5, carousel: 0.5 };\nreturn ($json.insights || []).map((insight) => ({ json: { workspaceId, formatMix, insight } }));"
+      },
+      "id": "code-preparar-itens",
+      "name": "Um Item por Insight",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [640, 300]
+    },
+    {
+      "parameters": { "batchSize": 1, "options": {} },
+      "id": "loop-insights",
+      "name": "Loop Insights",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [860, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $json;\nconst suggested = item.insight.suggestedFormat;\nlet format = suggested === 'carousel' || suggested === 'static_post' ? suggested : null;\nif (!format) {\n  const r = Math.random();\n  let acc = 0;\n  for (const [fmt, weight] of Object.entries(item.formatMix)) {\n    acc += weight;\n    if (r <= acc) { format = fmt; break; }\n  }\n  format = format || 'static_post';\n}\nreturn [{ json: { ...item, format } }];"
+      },
+      "id": "code-decidir-format",
+      "name": "Decidir Format (peso + sugestão)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1080, 200],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=http://fastsocial-api-prod:3333/api/v1/internal/autopilot/{{$json.workspaceId}}/templates",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [{ "name": "format", "value": "={{$json.format}}" }]
+        },
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "id": "http-templates",
+      "name": "Buscar Templates Compatíveis",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1300, 200],
+      "continueOnFail": true,
+      "credentials": {
+        "httpHeaderAuth": { "id": "fastsocial-service-token", "name": "FastSocial Service Token" }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const prev = $('Decidir Format (peso + sugestão)').item.json;\nconst templates = $json.templates || [];\nif (templates.length === 0) {\n  throw new Error('Nenhum template compatível para o format ' + prev.format);\n}\nconst chosen = templates[Math.floor(Math.random() * templates.length)];\nreturn [{ json: { ...prev, templateId: chosen.id } }];"
+      },
+      "id": "code-escolher-template",
+      "name": "Escolher Template (MVP: aleatório)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1520, 200],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://fastsocial-api-prod:3333/api/v1/internal/autopilot/copy-generate",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            { "name": "workspaceId", "value": "={{$json.workspaceId}}" },
+            { "name": "insightId", "value": "={{$json.insight.id}}" },
+            { "name": "format", "value": "={{$json.format}}" }
+          ]
+        },
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "id": "http-copy-generate",
+      "name": "Gerar Copy",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1740, 200],
+      "continueOnFail": true,
+      "credentials": {
+        "httpHeaderAuth": { "id": "fastsocial-service-token", "name": "FastSocial Service Token" }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const prev = $('Escolher Template (MVP: aleatório)').item.json;\nconst copyText = ($json.slides || []).map((s) => s.text).join('\\n\\n');\nreturn [{ json: { ...prev, copyText } }];"
+      },
+      "id": "code-juntar-copy",
+      "name": "Juntar Copy ao Item",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1960, 200],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://fastsocial-api-prod:3333/api/v1/internal/autopilot/content-pieces",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            { "name": "workspaceId", "value": "={{$json.workspaceId}}" },
+            { "name": "templateId", "value": "={{$json.templateId}}" },
+            { "name": "format", "value": "={{$json.format}}" },
+            { "name": "briefing", "value": "={{$json.copyText}}" },
+            { "name": "insightId", "value": "={{$json.insight.id}}" }
+          ]
+        },
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "id": "http-create-content-piece",
+      "name": "Criar Content Piece",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2180, 200],
+      "continueOnFail": true,
+      "credentials": {
+        "httpHeaderAuth": { "id": "fastsocial-service-token", "name": "FastSocial Service Token" }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "typeValidation": "loose" },
+          "conditions": [
+            {
+              "leftValue": "={{$json.brandKitDefaultImageSource}}",
+              "rightValue": "ai_generated",
+              "operator": { "type": "string", "operation": "equals" }
+            }
+          ]
+        }
+      },
+      "id": "if-ai-generated",
+      "name": "IF default_image_source = ai_generated",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [2400, 200]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://fastsocial-api-prod:3333/api/v1/internal/autopilot/image-generation-jobs",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            { "name": "workspaceId", "value": "={{$json.workspaceId}}" },
+            { "name": "contentSlideId", "value": "={{$json.slides[0].id}}" }
+          ]
+        },
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "id": "http-create-image-job",
+      "name": "Criar Job de Geração de Imagem",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2620, 100],
+      "continueOnFail": true,
+      "credentials": {
+        "httpHeaderAuth": { "id": "fastsocial-service-token", "name": "FastSocial Service Token" }
+      }
+    },
+    {
+      "parameters": { "amount": 10 },
+      "id": "wait-poll-image-job",
+      "name": "Aguardar (poll)",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [2840, 100]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=http://fastsocial-api-prod:3333/api/v1/internal/autopilot/image-generation-jobs/{{$json.id}}",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [{ "name": "workspaceId", "value": "={{$('IF default_image_source = ai_generated').item.json.workspaceId}}" }]
+        },
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "id": "http-poll-image-job",
+      "name": "Checar Status do Job",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [3060, 100],
+      "continueOnFail": true,
+      "credentials": {
+        "httpHeaderAuth": { "id": "fastsocial-service-token", "name": "FastSocial Service Token" }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "typeValidation": "loose" },
+          "conditions": [
+            {
+              "leftValue": "={{$json.status}}",
+              "rightValue": "pending",
+              "operator": { "type": "string", "operation": "equals" }
+            }
+          ]
+        }
+      },
+      "id": "if-ainda-pending",
+      "name": "IF ainda pending",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [3280, 100]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=http://fastsocial-api-prod:3333/api/v1/internal/autopilot/content-pieces/{{$('IF default_image_source = ai_generated').item.json.id}}/render",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            { "name": "workspaceId", "value": "={{$('IF default_image_source = ai_generated').item.json.workspaceId}}" },
+            { "name": "targetNetwork", "value": "instagram" }
+          ]
+        },
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "id": "http-render",
+      "name": "Renderizar Peça",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [3500, 200],
+      "continueOnFail": true,
+      "credentials": {
+        "httpHeaderAuth": { "id": "fastsocial-service-token", "name": "FastSocial Service Token" }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=http://fastsocial-api-prod:3333/api/v1/internal/autopilot/content-pieces/{{$json.id}}/submit-for-approval",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            { "name": "workspaceId", "value": "={{$json.workspaceId}}" },
+            { "name": "autoApprove", "value": "={{$json.autoApprove}}" }
+          ]
+        },
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "id": "http-submit-for-approval",
+      "name": "Submeter para Aprovação",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [3720, 200],
+      "continueOnFail": true,
+      "credentials": {
+        "httpHeaderAuth": { "id": "fastsocial-service-token", "name": "FastSocial Service Token" }
+      }
+    }
+  ],
+  "connections": {
+    "Trigger (workspaceId)": {
+      "main": [[{ "node": "Buscar Próximos Insights", "type": "main", "index": 0 }]]
+    },
+    "Buscar Próximos Insights": {
+      "main": [[{ "node": "Um Item por Insight", "type": "main", "index": 0 }]]
+    },
+    "Um Item por Insight": {
+      "main": [[{ "node": "Loop Insights", "type": "main", "index": 0 }]]
+    },
+    "Loop Insights": {
+      "main": [
+        [{ "node": "Decidir Format (peso + sugestão)", "type": "main", "index": 0 }],
+        []
+      ]
+    },
+    "Decidir Format (peso + sugestão)": {
+      "main": [[{ "node": "Buscar Templates Compatíveis", "type": "main", "index": 0 }]]
+    },
+    "Buscar Templates Compatíveis": {
+      "main": [[{ "node": "Escolher Template (MVP: aleatório)", "type": "main", "index": 0 }]]
+    },
+    "Escolher Template (MVP: aleatório)": {
+      "main": [[{ "node": "Gerar Copy", "type": "main", "index": 0 }]]
+    },
+    "Gerar Copy": {
+      "main": [[{ "node": "Juntar Copy ao Item", "type": "main", "index": 0 }]]
+    },
+    "Juntar Copy ao Item": {
+      "main": [[{ "node": "Criar Content Piece", "type": "main", "index": 0 }]]
+    },
+    "Criar Content Piece": {
+      "main": [[{ "node": "IF default_image_source = ai_generated", "type": "main", "index": 0 }]]
+    },
+    "IF default_image_source = ai_generated": {
+      "main": [
+        [{ "node": "Criar Job de Geração de Imagem", "type": "main", "index": 0 }],
+        [{ "node": "Renderizar Peça", "type": "main", "index": 0 }]
+      ]
+    },
+    "Criar Job de Geração de Imagem": {
+      "main": [[{ "node": "Aguardar (poll)", "type": "main", "index": 0 }]]
+    },
+    "Aguardar (poll)": {
+      "main": [[{ "node": "Checar Status do Job", "type": "main", "index": 0 }]]
+    },
+    "Checar Status do Job": {
+      "main": [[{ "node": "IF ainda pending", "type": "main", "index": 0 }]]
+    },
+    "IF ainda pending": {
+      "main": [
+        [{ "node": "Aguardar (poll)", "type": "main", "index": 0 }],
+        [{ "node": "Renderizar Peça", "type": "main", "index": 0 }]
+      ]
+    },
+    "Renderizar Peça": {
+      "main": [[{ "node": "Submeter para Aprovação", "type": "main", "index": 0 }]]
+    },
+    "Submeter para Aprovação": {
+      "main": [[{ "node": "Loop Insights", "type": "main", "index": 0 }]]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {}
+}

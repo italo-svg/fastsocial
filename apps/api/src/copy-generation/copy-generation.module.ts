@@ -6,5 +6,6 @@ import { AnthropicService } from "../common/services/anthropic.service";
 @Module({
   controllers: [CopyGenerationController],
   providers: [CopyGenerationService, AnthropicService],
+  exports: [CopyGenerationService],
 })
 export class CopyGenerationModule {}
