@@ -4,6 +4,8 @@ import { ServiceTokenGuard } from "./guards/service-token.guard";
 import { CurrentUser, CurrentUserPayload } from "./current-user.decorator";
 import { AuthService, AuthMeResponse } from "./auth.service";
 import { WorkspaceGuard } from "../common/guards/workspace.guard";
+import { AddonGuard } from "../common/guards/addon.guard";
+import { RequiresAddon } from "../common/decorators/requires-addon.decorator";
 import { CurrentWorkspace, CurrentWorkspacePayload } from "../common/decorators/current-workspace.decorator";
 
 @Controller("auth")
@@ -33,5 +35,16 @@ export class AuthController {
   @Get("service-ping")
   servicePing(): { ok: true; type: "service" } {
     return { ok: true, type: "service" };
+  }
+
+  // Endpoint de diagnostico do AddonGuard (spec 053), mesmo padrao do
+  // workspace-context/service-ping acima — os controllers de negocio reais
+  // que vao usar @RequiresAddon('instagram_automation') sao dos specs 054-056,
+  // que ainda nao existem.
+  @UseGuards(JwtAuthGuard, WorkspaceGuard, AddonGuard)
+  @RequiresAddon("instagram_automation")
+  @Get("instagram-automation-ping")
+  instagramAutomationPing(): { ok: true; addon: "instagram_automation" } {
+    return { ok: true, addon: "instagram_automation" };
   }
 }
