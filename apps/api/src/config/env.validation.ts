@@ -31,4 +31,6 @@ export const envValidationSchema = Joi.object({
   N8N_API_URL: Joi.string().uri().optional(),
   N8N_API_KEY: Joi.string().optional(),
   N8N_WEBHOOK_SECRET: Joi.string().optional(),
+  STRIPE_SECRET_KEY: Joi.string().optional(),
+  STRIPE_WEBHOOK_SECRET: Joi.string().optional(),
 }).unknown(true);

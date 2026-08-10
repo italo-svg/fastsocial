@@ -1,0 +1,28 @@
+{
+  "plans": [
+    {
+      "key": "starter",
+      "name": "FastSocial Starter",
+      "priceMonthlyCents": 9700,
+      "currency": "brl",
+      "maxSocialAccounts": 2,
+      "maxPostsPerMonth": 30
+    },
+    {
+      "key": "pro",
+      "name": "FastSocial Pro",
+      "priceMonthlyCents": 19700,
+      "currency": "brl",
+      "maxSocialAccounts": 5,
+      "maxPostsPerMonth": 90
+    },
+    {
+      "key": "agency",
+      "name": "FastSocial Agency",
+      "priceMonthlyCents": 39700,
+      "currency": "brl",
+      "maxSocialAccounts": 15,
+      "maxPostsPerMonth": 300
+    }
+  ]
+}

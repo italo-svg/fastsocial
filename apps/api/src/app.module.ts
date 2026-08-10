@@ -18,6 +18,7 @@ import { SocialAccountsModule } from "./social-accounts/social-accounts.module";
 import { PublicationsModule } from "./publications/publications.module";
 import { AutopilotModule } from "./autopilot/autopilot.module";
 import { AnalyticsModule } from "./analytics/analytics.module";
+import { BillingModule } from "./billing/billing.module";
 
 // Módulos de negócio (specs 012 em diante) serão importados aqui conforme forem criados.
 @Module({
@@ -49,6 +50,7 @@ import { AnalyticsModule } from "./analytics/analytics.module";
     PublicationsModule,
     AutopilotModule,
     AnalyticsModule,
+    BillingModule,
   ],
 })
 export class AppModule {}

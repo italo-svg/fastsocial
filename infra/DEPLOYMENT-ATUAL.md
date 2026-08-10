@@ -28,7 +28,13 @@ docker run -d --name fastsocial-api-prod --network easypanel \
   -e API_PUBLIC_URL=... -e POSTIZ_API_URL=... -e POSTIZ_DATABASE_URL=... \
   -e TOKEN_ENCRYPTION_KEY=... -e LINKEDIN_API_VERSION=202501 \
   -e LINKEDIN_CLIENT_ID=... -e LINKEDIN_CLIENT_SECRET=... -e REDIS_URL=redis://fastsocial-redis:6379 \
+  -e STRIPE_SECRET_KEY=... -e STRIPE_WEBHOOK_SECRET=... \
+  -v /opt/fastsocial/infra/billing/plans.json:/app/infra/billing/plans.json:ro \
   fastsocial-api:dev
+# ^ o volume de plans.json é necessário (spec 040): o Dockerfile de apps/api
+# usa apps/api como build context, então infra/ não entra na imagem — a API
+# lê plans.json montado do repositório real, mesmo arquivo que
+# scripts/setup-stripe-products.ts escreve ao rodar no host.
 # ^ ver .env.example para a lista completa e atualizada — este bloco só ilustra o padrão de comando.
 docker network connect supabase_default fastsocial-api-prod
 
@@ -64,4 +70,4 @@ Usuários e workspaces de teste (specs 006-008) continuam no banco — úteis pa
 - `teste-validacao@fastsocial.dev` — membro de `workspace-a` (admin) e `workspace-b` (viewer). Senha resetada durante a validação do spec 028 via Supabase Admin API (a original não era conhecida): `ValidacaoTask028!`.
 - `teste-b@fastsocial.dev` — membro de `workspace-b` (admin)
 - `workspace-a` = `697084da-84ae-4db4-b49f-04fbf2bd4dc7`, `workspace-b` = `f33932c5-ade6-4a28-b178-0e3f713b07f0` (ids reais, úteis para testes via curl com `X-Workspace-Id`).
-- `autopilot_pipelines` (spec 033): `workspace-a` com `is_active=true`, `workspace-b` com `is_active=false` — criados para validar `GET /internal/autopilot/active-workspaces` ao vivo. `workspace-a` não tem Brand Kit com nicho preenchido, então `POST /internal/autopilot/research-scan` falha com 400 (esperado) até alguém completar o onboarding dele.
+- `autopilot_pipelines`/`brand_kits`/`social_accounts` de teste criados durante a validação dos specs 033-039 foram todos removidos ao final de cada sessão de teste — `workspace-a` volta ao estado limpo (sem piloto automático configurado, sem Brand Kit, sem conta social) entre specs, de propósito, para não deixar resíduo cruzando specs.

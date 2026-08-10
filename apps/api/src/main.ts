@@ -4,7 +4,11 @@ import { ConfigService } from "@nestjs/config";
 import { AppModule } from "./app.module";
 
 async function bootstrap(): Promise<void> {
-  const app = await NestFactory.create(AppModule);
+  // rawBody: true (spec 040) — preserva o corpo bruto em request.rawBody,
+  // necessário para validar a assinatura HMAC do webhook do Stripe
+  // (stripe.webhooks.constructEvent exige o payload byte-a-byte, não o JSON
+  // já reserializado pelo body-parser padrão).
+  const app = await NestFactory.create(AppModule, { rawBody: true });
   const config = app.get(ConfigService);
 
   app.setGlobalPrefix("api/v1");
