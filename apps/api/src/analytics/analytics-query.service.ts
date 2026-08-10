@@ -93,11 +93,14 @@ export class AnalyticsQueryService {
   // CA-03: ordena pela métrica escolhida usando o snapshot mais recente,
   // trazendo o insight de origem (quando a peça veio do piloto automático a
   // partir de uma pesquisa) para responder "o que está funcionando".
-  async ranking(workspaceId: string, metric: RankingMetric, limit: number): Promise<RankingItem[]> {
-    const publications = await this.findPublicationsWithLatestSnapshot(workspaceId, {
-      from: new Date(0),
-      to: new Date(),
-    });
+  // Aceita os mesmos filtros de summary (from/to/network/format) além de
+  // metric/limit — o spec 039 só lista metric/limit na assinatura do
+  // endpoint, mas manter o ranking preso a "sempre all-time" enquanto o
+  // resto da tela respeita o filtro de período/rede/formato seria
+  // inconsistente na UI (o usuário filtra por LinkedIn e o ranking continua
+  // mostrando Instagram). Decisão consciente de completar o contrato.
+  async ranking(workspaceId: string, metric: RankingMetric, limit: number, filters: SummaryFilters): Promise<RankingItem[]> {
+    const publications = await this.findPublicationsWithLatestSnapshot(workspaceId, filters);
 
     return publications
       .map((pub) => ({

@@ -34,12 +34,21 @@ export class AnalyticsController {
     @CurrentWorkspace() workspace: CurrentWorkspacePayload,
     @Query("metric") metric?: string,
     @Query("limit") limit?: string,
+    @Query("from") from?: string,
+    @Query("to") to?: string,
+    @Query("network") network?: string,
+    @Query("format") format?: string,
   ) {
     const resolvedMetric: RankingMetric = VALID_METRICS.includes(metric as RankingMetric)
       ? (metric as RankingMetric)
       : "reach";
     const resolvedLimit = limit ? Math.min(parseInt(limit, 10) || 10, 50) : 10;
-    return this.analyticsQueryService.ranking(workspace.id, resolvedMetric, resolvedLimit);
+    return this.analyticsQueryService.ranking(workspace.id, resolvedMetric, resolvedLimit, {
+      from: from ? new Date(from) : new Date(0),
+      to: to ? new Date(to) : new Date(),
+      network,
+      format,
+    });
   }
 
   @Get("export.csv")
