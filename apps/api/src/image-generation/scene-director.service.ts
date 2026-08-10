@@ -1,5 +1,6 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { AnthropicService } from "../common/services/anthropic.service";
+import { SystemPromptsService } from "../system-prompts/system-prompts.service";
 
 export type TextZonePosition = "top" | "bottom" | "left" | "right" | "center";
 
@@ -28,7 +29,10 @@ const NEGATIVE_SPACE_BY_POSITION: Record<TextZonePosition, string> = {
 export class SceneDirectorService {
   private readonly logger = new Logger(SceneDirectorService.name);
 
-  constructor(private readonly anthropic: AnthropicService) {}
+  constructor(
+    private readonly anthropic: AnthropicService,
+    private readonly systemPrompts: SystemPromptsService,
+  ) {}
 
   async buildSceneBrief(input: BuildSceneBriefInput): Promise<string> {
     const negativeSpaceInstruction = NEGATIVE_SPACE_BY_POSITION[input.textZonePosition];
@@ -38,15 +42,10 @@ export class SceneDirectorService {
 
     let sceneText: string;
     try {
+      const system = await this.systemPrompts.get("scene_director");
       sceneText =
         (await this.anthropic.complete({
-          system:
-            "Você é um diretor de fotografia. Dado o tema de um post e o nicho/tom da marca, descreva em " +
-            "2-3 frases, em inglês, um cenário fotográfico concreto (sujeito, ambiente, ação/mood) que " +
-            "ilustre o tema SEM ilustrar o texto literalmente e SEM clichês óbvios de banco de imagens " +
-            '(ex: para um tema sobre "economia de tempo", não use um relógio genérico). Nunca mencione ' +
-            "texto, palavras ou tipografia na cena. Termine incluindo, literalmente, a instrução de espaço " +
-            "negativo fornecida.",
+          system,
           prompt:
             `Tema do post: "${input.copyText}"\nNicho: ${input.niche}\n` +
             `Tom: ${input.toneKeywords.join(", ") || "não informado"}\n` +

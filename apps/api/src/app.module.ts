@@ -28,6 +28,7 @@ import { DataPrivacyModule } from "./data-privacy/data-privacy.module";
 import { BullBoardModule } from "./queue/bull-board.module";
 import { SystemHealthModule } from "./system-health/system-health.module";
 import { FunnelModule } from "./funnel/funnel.module";
+import { SystemPromptsModule } from "./system-prompts/system-prompts.module";
 
 // Módulos de negócio (specs 012 em diante) serão importados aqui conforme forem criados.
 @Module({
@@ -66,6 +67,7 @@ import { FunnelModule } from "./funnel/funnel.module";
     BullBoardModule,
     SystemHealthModule,
     FunnelModule,
+    SystemPromptsModule,
   ],
   providers: [ErrorTrackingService, { provide: APP_FILTER, useClass: ErrorTrackingFilter }],
 })

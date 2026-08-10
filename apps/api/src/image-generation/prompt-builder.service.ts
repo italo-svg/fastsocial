@@ -1,12 +1,7 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { AnthropicService } from "../common/services/anthropic.service";
+import { SystemPromptsService, interpolate } from "../system-prompts/system-prompts.service";
 import { SceneDirectorService, type TextZonePosition } from "./scene-director.service";
-
-// Copiada literalmente do PRD Secao 7.7 — nunca editar sem atualizar a fonte normativa.
-const NEGATIVE_LIST =
-  "no legible text, no logos, no watermarks, no distorted hands or faces, no plastic-looking skin, " +
-  "no AI-generated symmetrical face artifacts, no oversaturated HDR, no generic stock-photo composition, " +
-  "no clipart, no extra limbs, no uncanny-valley expressions";
 
 interface PromptZone {
   id: string;
@@ -42,6 +37,7 @@ export class PromptBuilderService {
   constructor(
     private readonly anthropic: AnthropicService,
     private readonly sceneDirector: SceneDirectorService,
+    private readonly systemPrompts: SystemPromptsService,
   ) {}
 
   async build(params: BuildPromptParams): Promise<BuiltPrompt> {
@@ -49,10 +45,13 @@ export class PromptBuilderService {
 
     const toneKeywords = await this.extractToneKeywords(params.toneOfVoice, params.niche);
     const colorStory = this.describeColors(params.colorPalette);
-    const brandIdentityLock =
-      `Photography direction for ${params.brandName}, a ${params.niche ?? "unspecified"} brand. ` +
-      `Visual signature: ${toneKeywords.join(", ")}. Color story: ${colorStory}, used only as accent tones ` +
-      "in props, wardrobe or lighting gel — never as a flat graphic background fill.";
+    const brandIdentityLockTemplate = await this.systemPrompts.get("image_brand_identity_lock_template");
+    const brandIdentityLock = interpolate(brandIdentityLockTemplate, {
+      brandName: params.brandName,
+      niche: params.niche ?? "unspecified",
+      toneKeywords: toneKeywords.join(", "),
+      colorStory,
+    });
 
     // Camada 2 delegada ao servico dedicado (spec 023) — mantem a "criatividade de
     // cena" isolada e testavel separadamente do resto da montagem de prompt.
@@ -72,11 +71,10 @@ export class PromptBuilderService {
         ? `Reference conditioning: ${params.referenceImageUrls.length} brand reference image(s) attached, weight ${params.referenceWeight}.`
         : "No brand reference images available for this workspace — generating without conditioning (fidelity not guaranteed).";
 
-    const negativeListLayer = `Exclusion list: ${NEGATIVE_LIST}.`;
+    const negativeList = await this.systemPrompts.get("image_negative_list");
+    const negativeListLayer = `Exclusion list: ${negativeList}.`;
 
-    const slotConstraint =
-      "Generate background/scene only — this image will be composited with logo and text afterward. " +
-      "Leave the designated text-safe zone visually calm.";
+    const slotConstraint = await this.systemPrompts.get("image_slot_constraint");
 
     const assembledPrompt = [
       `[BRAND IDENTITY LOCK]\n${brandIdentityLock}`,

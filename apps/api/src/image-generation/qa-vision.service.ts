@@ -2,6 +2,7 @@ import { BadRequestException, Injectable, Logger, NotFoundException } from "@nes
 import { ConfigService } from "@nestjs/config";
 import { PrismaService } from "../prisma/prisma.service";
 import { AnthropicService } from "../common/services/anthropic.service";
+import { SystemPromptsService } from "../system-prompts/system-prompts.service";
 import { ImageGenerationService } from "./image-generation.service";
 import type { QaVisionResult } from "./dto/qa-result.dto";
 
@@ -24,6 +25,7 @@ export class QaVisionService {
     private readonly anthropic: AnthropicService,
     private readonly imageGenerationService: ImageGenerationService,
     private readonly config: ConfigService,
+    private readonly systemPrompts: SystemPromptsService,
   ) {}
 
   async evaluate(workspaceId: string, jobId: string) {
@@ -118,11 +120,9 @@ export class QaVisionService {
 
   private async callVision(imageUrl: string, brandKit: BrandKitContext): Promise<QaVisionResult> {
     const prompt = this.buildEvaluationPrompt(brandKit);
+    const system = await this.systemPrompts.get("qa_vision");
     const raw = await this.anthropic.completeWithImage({
-      system:
-        "Você é um QA de fidelidade de marca para imagens geradas por IA. Responda APENAS com um JSON " +
-        'válido no formato {"brandFitScore":number,"artifactScore":number,"negativeSpaceScore":number,' +
-        '"reasoning":string}, notas de 0 a 10, sem nenhum texto fora do JSON.',
+      system,
       prompt,
       imageUrl,
       maxTokens: 300,

@@ -11,40 +11,17 @@ export interface CopyPromptParams {
   variationHint?: string;
 }
 
-export function buildCopyPrompt(params: CopyPromptParams): string {
-  const { format, niche, toneOfVoice, contextText, slideCount, variationHint } = params;
+// formatInstruction vem do banco (spec 048, SystemPromptsService.get(`copy_generation_${format}`))
+// em vez de hardcoded aqui — brandContext/contextText/variationText continuam
+// montados em código porque são dados dinâmicos, não instrução editável.
+export function buildCopyPrompt(params: CopyPromptParams, formatInstruction: string): string {
+  const { niche, toneOfVoice, contextText, variationHint } = params;
   const brandContext = `Nicho da marca: ${niche ?? "não informado"}. Tom de voz: ${toneOfVoice ?? "não informado"}.`;
   const variationText = variationHint
     ? `\n\nInstrução adicional para esta variação: ${variationHint}.`
     : "";
 
-  if (format === "static_post") {
-    return (
-      `${brandContext}\n\nContexto/briefing: ${contextText}\n\n` +
-      "Escreva uma legenda para um post estático de Instagram/Facebook: um gancho forte na primeira " +
-      "linha, seguido da legenda completa (150-300 caracteres no total). Escreva em português do Brasil." +
-      variationText
-    );
-  }
-
-  if (format === "carousel") {
-    const count = slideCount ?? 5;
-    return (
-      `${brandContext}\n\nContexto/briefing: ${contextText}\n\n` +
-      `Escreva o texto de cada slide de um carrossel de ${count} slides: o slide 1 é sempre a capa ` +
-      `(gancho forte), o slide ${count} é sempre um CTA. Um texto curto por slide. Escreva em português ` +
-      "do Brasil." +
-      variationText
-    );
-  }
-
-  return (
-    `${brandContext}\n\nContexto/briefing: ${contextText}\n\n` +
-    "Escreva um roteiro de Reels/vídeo curto, dividido em cenas com marcação de tempo (formato " +
-    '"[0-3s]", "[3-8s]" etc.), cobrindo do gancho inicial ao CTA final. Não gere vídeo, só o texto do ' +
-    "roteiro. Escreva em português do Brasil." +
-    variationText
-  );
+  return `${brandContext}\n\nContexto/briefing: ${contextText}\n\n${formatInstruction}${variationText}`;
 }
 
 export function buildCopyTool(format: CopyFormat): AnthropicToolDefinition {

@@ -34,15 +34,17 @@ function buildDeps(job: ReturnType<typeof buildJob>) {
   const anthropic = { completeWithImage: jest.fn() };
   const imageGenerationService = { createJob: jest.fn().mockResolvedValue({}) };
   const config = { get: jest.fn().mockReturnValue(undefined) };
+  const systemPrompts = { get: jest.fn().mockResolvedValue("system prompt de teste") };
 
   const service = new QaVisionService(
     prisma as never,
     anthropic as never,
     imageGenerationService as never,
     config as never,
+    systemPrompts as never,
   );
 
-  return { service, prisma, anthropic, imageGenerationService, config };
+  return { service, prisma, anthropic, imageGenerationService, config, systemPrompts };
 }
 
 describe("QaVisionService", () => {

@@ -1,6 +1,7 @@
 import { BadRequestException, Injectable, NotFoundException, NotImplementedException } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
 import { AnthropicService } from "../common/services/anthropic.service";
+import { SystemPromptsService, interpolate } from "../system-prompts/system-prompts.service";
 import { buildCopyPrompt, buildCopyTool } from "./prompt-templates";
 import { GenerateCopyDto } from "./dto/generate-copy.dto";
 
@@ -22,6 +23,7 @@ export class CopyGenerationService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly anthropic: AnthropicService,
+    private readonly systemPrompts: SystemPromptsService,
   ) {}
 
   async generate(workspaceId: string, dto: GenerateCopyDto): Promise<GenerateCopyResponse> {
@@ -45,14 +47,22 @@ export class CopyGenerationService {
     const brandKit = await this.prisma.brandKit.findUnique({ where: { workspaceId } });
     const slideCount = dto.format === "carousel" ? (dto.slideCount ?? 5) : undefined;
 
-    const prompt = buildCopyPrompt({
-      format: dto.format,
-      niche: brandKit?.niche ?? null,
-      toneOfVoice: brandKit?.toneOfVoice ?? null,
-      contextText,
-      slideCount,
-      variationHint: dto.variationHint,
+    const formatInstructionTemplate = await this.systemPrompts.get(`copy_generation_${dto.format}`);
+    const formatInstruction = interpolate(formatInstructionTemplate, {
+      slideCount: String(slideCount ?? 5),
     });
+
+    const prompt = buildCopyPrompt(
+      {
+        format: dto.format,
+        niche: brandKit?.niche ?? null,
+        toneOfVoice: brandKit?.toneOfVoice ?? null,
+        contextText,
+        slideCount,
+        variationHint: dto.variationHint,
+      },
+      formatInstruction,
+    );
     const tool = buildCopyTool(dto.format);
 
     if (dto.format === "reels_script") {

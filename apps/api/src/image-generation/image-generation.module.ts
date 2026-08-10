@@ -7,8 +7,10 @@ import { AnthropicService } from "../common/services/anthropic.service";
 import { QaVisionController } from "./qa-vision.controller";
 import { QaVisionService } from "./qa-vision.service";
 import { SceneDirectorService } from "./scene-director.service";
+import { SystemPromptsModule } from "../system-prompts/system-prompts.module";
 
 @Module({
+  imports: [SystemPromptsModule],
   controllers: [ImageGenerationController, QaVisionController],
   providers: [
     ImageGenerationService,

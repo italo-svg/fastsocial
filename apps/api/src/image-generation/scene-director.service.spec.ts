@@ -7,7 +7,8 @@ function buildService(anthropicResponse: string | Error) {
         ? jest.fn().mockRejectedValue(anthropicResponse)
         : jest.fn().mockResolvedValue(anthropicResponse),
   };
-  return { service: new SceneDirectorService(anthropic as never), anthropic };
+  const systemPrompts = { get: jest.fn().mockResolvedValue("system prompt de teste") };
+  return { service: new SceneDirectorService(anthropic as never, systemPrompts as never), anthropic };
 }
 
 const BASE_INPUT = {
