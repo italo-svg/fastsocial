@@ -68,6 +68,7 @@ export default function AutomationDetailPage(): JSX.Element {
   }
 
   function toggleActive(): void {
+    if (!flow) return;
     setError(null);
     updateMutation.mutate(
       { isActive: !flow.isActive },
