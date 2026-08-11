@@ -12,12 +12,15 @@ import { SendDmHandler } from "./step-handlers/send-dm.handler";
 import { SendQuickRepliesHandler } from "./step-handlers/send-quick-replies.handler";
 import { WaitHandler } from "./step-handlers/wait.handler";
 import { TagContactHandler } from "./step-handlers/tag-contact.handler";
+import { AutomationFlowsController } from "./automation-flows.controller";
+import { AutomationFlowsService } from "./automation-flows.service";
+import { AddonGuard } from "../common/guards/addon.guard";
 
 @Module({
   imports: [
     BullModule.registerQueue({ name: "automation-execution" }),
   ],
-  controllers: [WebhookController],
+  controllers: [WebhookController, AutomationFlowsController],
   providers: [
     WebhookSignatureGuard,
     InstagramWebhookService,
@@ -30,6 +33,8 @@ import { TagContactHandler } from "./step-handlers/tag-contact.handler";
     SendQuickRepliesHandler,
     WaitHandler,
     TagContactHandler,
+    AutomationFlowsService,
+    AddonGuard,
   ],
   exports: [TriggerMatcherService],
 })
