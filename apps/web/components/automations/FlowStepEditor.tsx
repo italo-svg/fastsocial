@@ -64,7 +64,7 @@ export function FlowStepEditor({ steps, onChange }: FlowStepEditorProps): JSX.El
       {/* CA-04: aviso sempre visível no corpo da tela, nunca dentro de tooltip/hover. */}
       <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
         <strong>Janela de 24h da Meta:</strong> o Instagram só permite enviar mensagens diretas automáticas em até 24h
-        após a última interação do contato. Passos de "Aguardar" longos podem ultrapassar essa janela e a mensagem
+        após a última interação do contato. Passos de &quot;Aguardar&quot; longos podem ultrapassar essa janela e a mensagem
         seguinte falhará — planeje seus tempos de espera considerando esse limite.
       </div>
 

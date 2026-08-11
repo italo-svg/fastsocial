@@ -71,7 +71,7 @@ function AutomationsList(): JSX.Element {
 
       {!isLoading && flows?.length === 0 && (
         <Card>
-          <p className="text-sm text-neutral-600">Nenhum fluxo criado ainda. Crie o primeiro com "+ Novo fluxo".</p>
+          <p className="text-sm text-neutral-600">Nenhum fluxo criado ainda. Crie o primeiro com &quot;+ Novo fluxo&quot;.</p>
         </Card>
       )}
 
