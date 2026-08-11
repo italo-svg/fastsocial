@@ -67,6 +67,11 @@ export default function LoginPage(): JSX.Element {
             {loading ? "Entrando..." : "Entrar"}
           </Button>
         </form>
+        <p className="text-center text-sm">
+          <a href="/forgot-password" className="text-primary">
+            Esqueci minha senha
+          </a>
+        </p>
         <Button variant="secondary" className="w-full" onClick={handleGoogleLogin}>
           Entrar com Google
         </Button>
