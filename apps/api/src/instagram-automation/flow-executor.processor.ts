@@ -9,11 +9,12 @@ import { WaitHandler } from "./step-handlers/wait.handler";
 import { TagContactHandler } from "./step-handlers/tag-contact.handler";
 import type { AutomationExecutionJobData } from "./instagram-webhook.service";
 
-// CA-04: concurrency baixa (não N req/s globais, mas limita quantos steps
-// tocam a API de mensageria da Meta ao mesmo tempo) + o limiter da própria
-// fila (registrado em instagram-automation.module.ts) — as duas camadas
-// evitam estourar o rate limit da conta conectada.
-@Processor("automation-execution", { concurrency: 3 })
+// CA-04: concurrency baixa (quantos steps tocam a API de mensageria ao
+// mesmo tempo) + limiter do Worker (máximo de 5 jobs processados por
+// segundo) — as duas camadas evitam estourar o rate limit da conta
+// conectada. `limiter` é opção do Worker do BullMQ (não do registerQueue),
+// por isso fica aqui e não em instagram-automation.module.ts.
+@Processor("automation-execution", { concurrency: 3, limiter: { max: 5, duration: 1000 } })
 export class FlowExecutorProcessor extends WorkerHost {
   private readonly logger = new Logger(FlowExecutorProcessor.name);
 
