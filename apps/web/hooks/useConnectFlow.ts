@@ -29,7 +29,14 @@ export function useConnectFlow(provider: "meta" | "linkedin", onDone: () => void
     try {
       const endpoint = provider === "meta" ? "/social-accounts/connect/meta" : "/social-accounts/connect/linkedin";
       const method = provider === "meta" ? "POST" : "GET";
-      const response = await apiFetch<{ url: string }>(endpoint, { method });
+      // Achado numa varredura do frontend: o body nunca era enviado, então o
+      // ConnectAccountDto (que exige "facebook"|"instagram") rejeitava a
+      // requisição com 400 de validação ANTES de chegar na mensagem real e já
+      // documentada do backend (spec 028: conectar conta nova ainda não é
+      // possível sem acesso direto ao Postiz) — o usuário via um erro de
+      // validação genérico em vez do aviso correto.
+      const body = provider === "meta" ? JSON.stringify({ provider: "instagram" }) : undefined;
+      const response = await apiFetch<{ url: string }>(endpoint, { method, body });
       url = response.url;
     } catch (err) {
       popup?.close();
