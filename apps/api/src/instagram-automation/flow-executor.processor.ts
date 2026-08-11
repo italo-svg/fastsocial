@@ -56,27 +56,37 @@ export class FlowExecutorProcessor extends WorkerHost {
     try {
       let delayMs: number | undefined;
 
-      if (step.stepType === "wait") {
-        // CA-01: não bloqueia — o próprio job termina normalmente, o PRÓXIMO
-        // step é que nasce com o delay do BullMQ aplicado abaixo.
-        delayMs = this.waitHandler.execute(step.payload as { seconds?: number }).delayMs;
-      } else {
-        const accessToken = this.tokenEncryption.decrypt(socialAccount.accessTokenEncrypted);
-        const context = { accessToken, contactId };
-
-        switch (step.stepType) {
-          case "send_dm":
+      switch (step.stepType) {
+        case "wait":
+          // CA-01: não bloqueia — o próprio job termina normalmente, o
+          // PRÓXIMO step é que nasce com o delay do BullMQ aplicado abaixo.
+          delayMs = this.waitHandler.execute(step.payload as { seconds?: number }).delayMs;
+          break;
+        case "tag_contact":
+          // Achado ao validar ao vivo: tag_contact não chama a API de
+          // mensageria (item 2 do spec: "sem efeito externo"), então NUNCA
+          // deveria depender de decriptar o token — decriptar incondicional
+          // fazia esse step falhar até numa conta sem token válido, o que
+          // contradiz o próprio propósito do step. Só passa contactId/workspaceId.
+          await this.tagContactHandler.execute(
+            step.payload as { tag?: string },
+            { accessToken: "", contactId },
+            socialAccount.workspaceId,
+          );
+          break;
+        case "send_dm":
+        case "send_quick_replies": {
+          const accessToken = this.tokenEncryption.decrypt(socialAccount.accessTokenEncrypted);
+          const context = { accessToken, contactId };
+          if (step.stepType === "send_dm") {
             await this.sendDmHandler.execute(step.payload as { text?: string }, context);
-            break;
-          case "send_quick_replies":
+          } else {
             await this.sendQuickRepliesHandler.execute(step.payload as { text?: string; options?: string[] }, context);
-            break;
-          case "tag_contact":
-            await this.tagContactHandler.execute(step.payload as { tag?: string }, context, socialAccount.workspaceId);
-            break;
-          default:
-            throw new Error(`Tipo de step desconhecido: "${step.stepType}".`);
+          }
+          break;
         }
+        default:
+          throw new Error(`Tipo de step desconhecido: "${step.stepType}".`);
       }
 
       await this.queue.add(
