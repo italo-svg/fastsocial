@@ -97,6 +97,12 @@ A boa notícia: **tudo o que é código, configuração e infraestrutura técnic
 ### 1.6 Lovable (opcional, cosmético — não é infraestrutura)
 - [ ] Nada obrigatório aqui. Dado o requisito de tudo rodar só na Hostinger, o Lovable **não hospeda nada em produção** — o painel roda como container no VPS, igual todo o resto. Se você ainda quiser o Lovable só como editor visual (sincronizado com o mesmo repositório GitHub, por conveniência pessoal de edição), pode conectar por conta própria a qualquer momento; não bloqueia nem afeta o restante do projeto. Se preferir, ignore esse item por completo.
 
+### 1.6.1 SMTP transacional (achado numa auditoria de prontidão de produção, 2026-08-11)
+- [ ] Criar conta num provedor de e-mail transacional (ex: Resend, Postmark, Mailgun, Amazon SES) — geralmente sem verificação de identidade/negócio pesada como Meta/LinkedIn/Stripe, mas ainda é criação de conta, então só você pode fazer.
+- **Achado real:** o GoTrue (Supabase Auth self-hospedado) está configurado com `GOTRUE_SMTP_HOST=supabase-mail` apontando pra um container que **não existe** rodando neste VPS, com credenciais fake (`fake_mail_user`/`fake_mail_password`). Confirmado ao vivo: pedir recuperação de senha retorna erro real (a chamada SMTP falha de verdade, não é hipotético). Isso significa que reset de senha, convite de usuário e confirmação de troca de e-mail não entregam nada hoje — só o cadastro inicial funciona, porque `GOTRUE_MAILER_AUTOCONFIRM=true` pula a confirmação por e-mail nesse caso específico.
+- **O que já está pronto, só esperando a chave:** as telas `/forgot-password` e `/reset-password` já foram construídas e testadas ao vivo (erro gracioso confirmado) — assim que o SMTP real existir, funciona de ponta a ponta sem nenhuma mudança de código, só trocar `GOTRUE_SMTP_HOST`/`GOTRUE_SMTP_USER`/`GOTRUE_SMTP_PASS`/`GOTRUE_SMTP_PORT` no container `supabase-auth` e reiniciar.
+- **O que você me passa:** host, porta, usuário e senha SMTP do provedor escolhido (ou a API key, se o provedor preferir integração por API em vez de SMTP puro).
+
 ### 1.7 Provedores de IA
 - [ ] Conta na **Anthropic (Claude API)** com billing ativo — para copy, "diretor de cena" e QA de imagem por visão.
 - [ ] Conta em **fal.ai** ou **Replicate** — para geração de imagem (Flux.1), com billing ativo.
