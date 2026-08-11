@@ -2,8 +2,21 @@
 # backup.sh (spec 043) — dump diário dos bancos internos que ficam SÓ no VPS
 # (Postiz Postgres via pg_dump; n8n usa SQLite interno ao volume do
 # container, então copiamos o arquivo em vez de pg_dump — ver
-# infra/n8n/README.md). O banco do produto em si (Supabase) já tem backup
-# gerenciado pela própria stack Supabase, não replicado aqui.
+# infra/n8n/README.md).
+#
+# Achado real numa auditoria de prontidão de produção (pós-roadmap, agosto
+# 2026): o comentário original aqui dizia que "o banco do produto (Supabase)
+# já tem backup gerenciado pela própria stack" — FALSO para Supabase
+# self-hospedado via docker-compose puro (diferente do Supabase Cloud, que
+# tem backup automático gerenciado). Conferido ao vivo: `archive_mode=off`
+# no Postgres real, nenhum crontab configurado — ZERO backup do banco que
+# guarda TUDO (contas, workspaces, brand kit, conteúdo, billing) até este
+# fix. Corrigido abaixo com um terceiro dump (DATABASE_URL, a mesma que a
+# API usa) gravado em disco local (retenção 7 dias) ANTES de tentar o upload
+# pro Storage — proteção contra perda lógica (delete errado, corrupção)
+# mesmo se o upload falhar; não substitui um destino fora do VPS (S3/Backblaze
+# etc.) para proteção contra perda do disco/VPS inteiro, que exigiria uma
+# conta externa nova (fora do que dá pra resolver só com código/infra).
 #
 # Upload pro bucket "backups" do Supabase Storage self-hospedado (mesmo
 # provedor de armazenamento já usado pelo resto do projeto, evita operar um
@@ -22,6 +35,19 @@ trap 'rm -rf "$WORKDIR"' EXIT
 : "${SUPABASE_URL:?SUPABASE_URL não configurada}"
 : "${SUPABASE_SERVICE_ROLE_KEY:?SUPABASE_SERVICE_ROLE_KEY não configurada}"
 : "${POSTIZ_DATABASE_URL:?POSTIZ_DATABASE_URL não configurada}"
+: "${DATABASE_URL:?DATABASE_URL não configurada}"
+
+LOCAL_BACKUP_DIR="/opt/fastsocial/backups"
+LOCAL_RETENTION_DAYS=7
+
+echo "==> Dump do Postgres principal (produto FastSocial + Supabase Auth)..."
+mkdir -p "$LOCAL_BACKUP_DIR"
+MAIN_DUMP="${WORKDIR}/fastsocial-main-${TIMESTAMP}.sql"
+docker run --rm --network supabase_default postgres:17 \
+  pg_dump "${DATABASE_URL}" > "$MAIN_DUMP"
+cp "$MAIN_DUMP" "${LOCAL_BACKUP_DIR}/"
+echo "==> Cópia local salva em ${LOCAL_BACKUP_DIR}/$(basename "$MAIN_DUMP")"
+find "$LOCAL_BACKUP_DIR" -name 'fastsocial-main-*.sql' -mtime "+${LOCAL_RETENTION_DAYS}" -delete
 
 echo "==> Dump do Postgres do Postiz..."
 POSTIZ_DUMP="${WORKDIR}/postiz-${TIMESTAMP}.sql"
@@ -73,6 +99,7 @@ upload_file() {
 }
 
 echo "==> Upload para o bucket 'backups' do Supabase Storage (um arquivo por vez)..."
+upload_file "$MAIN_DUMP" || echo "AVISO: dump principal não subiu pro Storage — a cópia local em ${LOCAL_BACKUP_DIR} continua valendo."
 upload_file "$POSTIZ_DUMP" || echo "ERRO: dump do Postiz não foi enviado."
 if [ -n "$N8N_DUMP" ]; then
   upload_file "$N8N_DUMP" || true
