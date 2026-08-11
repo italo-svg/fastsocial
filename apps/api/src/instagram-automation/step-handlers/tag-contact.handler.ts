@@ -20,12 +20,15 @@ export class TagContactHandler {
     if (!payload.tag) {
       throw new Error('Step "tag_contact" sem "tag" no payload.');
     }
+    // entityId é @db.Uuid no schema (audit_logs) — contactId real do
+    // Instagram (IGSID) é um número grande, não um UUID, então vai em
+    // metadata em vez de entityId (achado ao validar ao vivo: a primeira
+    // versão tentava gravar em entityId e quebrava com erro de tipo do Postgres).
     await this.auditLog.record({
       workspaceId,
       action: "automation_tag_contact",
       entityType: "instagram_contact",
-      entityId: context.contactId,
-      metadata: { tag: payload.tag },
+      metadata: { tag: payload.tag, contactId: context.contactId },
     });
     return {};
   }
