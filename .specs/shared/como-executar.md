@@ -42,6 +42,17 @@ docker compose -f infra/supabase/docker-compose.yml up -d   # stack self-hospeda
 docker compose -f infra/docker-compose.yml up -d api web render-engine
 ```
 
+## Gotcha conhecido: `docker run` da API precisa montar `infra/`
+
+`billing.service.ts` lê `infra/billing/plans.json` em runtime (não em build) — o primeiro candidato de caminho hardcoded em `resolvePlansPath()` é `/app/infra/billing/plans.json`. A imagem da API (`apps/api/Dockerfile`) só empacota `prisma`/`dist`, nunca `infra` (de propósito: `plans.json` é mutado em runtime por `scripts/setup-stripe-products.ts`, que grava `stripePriceId` de volta no arquivo — bakeá-lo na imagem perderia essa escrita a cada rebuild). Isso significa que o container real **precisa** do volume montado manualmente:
+```bash
+docker run -d --name fastsocial-api-prod --network easypanel --restart unless-stopped -p 3333:3333 \
+  --env-file <env> \
+  -v /opt/fastsocial/infra:/app/infra:ro \
+  fastsocial-api:<tag>
+```
+Esquecer o `-v` não quebra o build nem o healthcheck (`/health` responde `200` normalmente) — só `GET /billing/plans` e `GET /addons` falham com 500 silencioso (achado real no Task 056: estava faltando desde o deploy original do Task 040).
+
 Postiz e n8n já existem neste servidor — **não** subir novas instâncias; os specs `027` e `032` devem ser executados em modo "conectar ao existente" (levantar apenas a configuração/integração necessária, como o app OAuth da Meta/LinkedIn dentro do Postiz já rodando), nunca em modo "instalar do zero", a menos que uma inspeção real do servidor mostre que algo está faltando.
 
 ## Variáveis de ambiente (`.env` dentro do VPS, em `/opt/autocontent/.env` — nunca commitado)
