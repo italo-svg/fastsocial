@@ -21,4 +21,9 @@ export interface NormalizedInstagramEvent {
   externalAccountId: string;
   triggerType: "comment" | "message" | "story_reply";
   text: string;
+  // ID (escopado ao app) de quem comentou/mandou a mensagem — é PRA QUEM o
+  // spec 055 manda a DM de resposta. Sem isso o motor de execução não sabe
+  // o destinatário (achado ao implementar o spec 055 — o job data original
+  // do spec 054 não carregava essa informação).
+  contactId: string;
 }

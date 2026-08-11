@@ -1,0 +1,98 @@
+import { InjectQueue, Processor, WorkerHost } from "@nestjs/bullmq";
+import { Logger } from "@nestjs/common";
+import { Job, Queue } from "bullmq";
+import { PrismaService } from "../prisma/prisma.service";
+import { TokenEncryptionService } from "../common/services/token-encryption.service";
+import { SendDmHandler } from "./step-handlers/send-dm.handler";
+import { SendQuickRepliesHandler } from "./step-handlers/send-quick-replies.handler";
+import { WaitHandler } from "./step-handlers/wait.handler";
+import { TagContactHandler } from "./step-handlers/tag-contact.handler";
+import type { AutomationExecutionJobData } from "./instagram-webhook.service";
+
+// CA-04: concurrency baixa (não N req/s globais, mas limita quantos steps
+// tocam a API de mensageria da Meta ao mesmo tempo) + o limiter da própria
+// fila (registrado em instagram-automation.module.ts) — as duas camadas
+// evitam estourar o rate limit da conta conectada.
+@Processor("automation-execution", { concurrency: 3 })
+export class FlowExecutorProcessor extends WorkerHost {
+  private readonly logger = new Logger(FlowExecutorProcessor.name);
+
+  constructor(
+    private readonly prisma: PrismaService,
+    @InjectQueue("automation-execution") private readonly queue: Queue<AutomationExecutionJobData>,
+    private readonly tokenEncryption: TokenEncryptionService,
+    private readonly sendDmHandler: SendDmHandler,
+    private readonly sendQuickRepliesHandler: SendQuickRepliesHandler,
+    private readonly waitHandler: WaitHandler,
+    private readonly tagContactHandler: TagContactHandler,
+  ) {
+    super();
+  }
+
+  // CA-03: cada job só sabe do PRÓPRIO runId/contactId — dois contatos
+  // disparando o mesmo flow viram dois runs/jobs completamente
+  // independentes, o BullMQ já processa em paralelo até o limite de
+  // concurrency, nenhum job referencia estado de outro.
+  async process(job: Job<AutomationExecutionJobData>): Promise<void> {
+    const { runId, automationFlowId, socialAccountId, contactId, stepOrder } = job.data;
+
+    const step = await this.prisma.automationFlowStep.findUnique({
+      where: { automationFlowId_stepOrder: { automationFlowId, stepOrder } },
+    });
+
+    if (!step) {
+      // Sem mais passos na ordem — o flow completou com sucesso.
+      await this.prisma.automationRun.update({ where: { id: runId }, data: { status: "completed" } });
+      return;
+    }
+
+    const socialAccount = await this.prisma.socialAccount.findUnique({ where: { id: socialAccountId } });
+    if (!socialAccount) {
+      await this.markFailed(runId, "Conta social não encontrada — pode ter sido desconectada.");
+      return;
+    }
+
+    try {
+      let delayMs: number | undefined;
+
+      if (step.stepType === "wait") {
+        // CA-01: não bloqueia — o próprio job termina normalmente, o PRÓXIMO
+        // step é que nasce com o delay do BullMQ aplicado abaixo.
+        delayMs = this.waitHandler.execute(step.payload as { seconds?: number }).delayMs;
+      } else {
+        const accessToken = this.tokenEncryption.decrypt(socialAccount.accessTokenEncrypted);
+        const context = { accessToken, contactId };
+
+        switch (step.stepType) {
+          case "send_dm":
+            await this.sendDmHandler.execute(step.payload as { text?: string }, context);
+            break;
+          case "send_quick_replies":
+            await this.sendQuickRepliesHandler.execute(step.payload as { text?: string; options?: string[] }, context);
+            break;
+          case "tag_contact":
+            await this.tagContactHandler.execute(step.payload as { tag?: string }, context, socialAccount.workspaceId);
+            break;
+          default:
+            throw new Error(`Tipo de step desconhecido: "${step.stepType}".`);
+        }
+      }
+
+      await this.queue.add(
+        "execute-step",
+        { runId, automationFlowId, socialAccountId, contactId, stepOrder: stepOrder + 1 },
+        delayMs ? { delay: delayMs } : undefined,
+      );
+    } catch (error) {
+      // CA-02: falha num passo interrompe SÓ este run — nunca relança, então
+      // o worker BullMQ segue processando os outros jobs normalmente.
+      const message = error instanceof Error ? error.message : "Erro desconhecido ao executar o step.";
+      this.logger.warn(`Automation run ${runId} falhou no step ${stepOrder} (${step.stepType}): ${message}`);
+      await this.markFailed(runId, message);
+    }
+  }
+
+  private async markFailed(runId: string, message: string): Promise<void> {
+    await this.prisma.automationRun.update({ where: { id: runId }, data: { status: "failed", errorMessage: message } });
+  }
+}
