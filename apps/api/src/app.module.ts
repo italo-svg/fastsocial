@@ -47,11 +47,22 @@ import { InstagramAutomationModule } from "./instagram-automation/instagram-auto
     // rate limiting (escopado só a ele, CA-05 do spec 046) — o resto da API
     // inteira (signup-adjacent, criação de conteúdo, endpoints de IA que vão
     // custar dinheiro real assim que as chaves existirem) não tinha limite
-    // nenhum. Limite global generoso (120 req/min por IP) — não deve
-    // interferir com uso legítimo (várias chamadas paralelas de uma tela só),
-    // mas barra abuso automatizado. Escopo de módulo diferente do
-    // ThrottlerModule do FunnelModule, sem conflito entre os dois.
-    ThrottlerModule.forRoot([{ name: "global", ttl: 60_000, limit: 120 }]),
+    // nenhum. Limite global generoso (120 req/min por IP) via APP_GUARD —
+    // não deve interferir com uso legítimo (várias chamadas paralelas de uma
+    // tela só), mas barra abuso automatizado.
+    //
+    // Bug real encontrado ao validar este próprio fix: nomear esse throttler
+    // "global" e deixar o FunnelModule com seu PRÓPRIO `ThrottlerModule.forRoot()`
+    // separado ("default", 20/min) fazia o limite de 20/min vazar pra API
+    // inteira (confirmado via `curl -I /health` mostrando `X-RateLimit-Limit: 20`
+    // numa rota que nunca passa perto do FunnelModule) — o pacote registra as
+    // opções do throttler de forma efetivamente global entre módulos, então o
+    // último `forRoot()` carregado vencia pra todo mundo, não só pro funil.
+    // Corrigido: UM único `forRoot()` aqui com o nome "default" (padrão que o
+    // decorator `@Throttle()` espera), e o FunnelController agora usa
+    // `@Throttle({ default: { limit: 20, ttl: 60_000 } })` pra sobrescrever
+    // só as próprias rotas em vez de um `forRoot()` concorrente.
+    ThrottlerModule.forRoot([{ name: "default", ttl: 60_000, limit: 120 }]),
     ScheduleModule.forRoot(),
     BullModule.forRootAsync({
       inject: [ConfigService],
