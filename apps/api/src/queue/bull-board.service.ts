@@ -24,6 +24,7 @@ export class BullBoardService {
   constructor(
     @InjectQueue("publish") private readonly publishQueue: Queue,
     @InjectQueue("data-export") private readonly dataExportQueue: Queue,
+    @InjectQueue("automation-execution") private readonly automationExecutionQueue: Queue,
     private readonly config: ConfigService,
     private readonly prisma: PrismaService,
   ) {}
@@ -36,8 +37,16 @@ export class BullBoardService {
     // mas a versão instalada do bullmq (^5.34) permite string também —
     // incompatibilidade só de tipos entre as duas libs, não de runtime (o
     // pacote funciona normalmente com qualquer Queue real do BullMQ).
+    // "automation-execution" (fila do motor de automação de Instagram, spec
+    // 055) adicionada numa auditoria de prontidão de produção — antes disso
+    // não tinha NENHUMA visão de job falho/ok pra essa fila, diferente de
+    // "publish"/"data-export".
     createBullBoard({
-      queues: [new BullMQAdapter(this.publishQueue), new BullMQAdapter(this.dataExportQueue)],
+      queues: [
+        new BullMQAdapter(this.publishQueue),
+        new BullMQAdapter(this.dataExportQueue),
+        new BullMQAdapter(this.automationExecutionQueue),
+      ],
       serverAdapter,
     });
 

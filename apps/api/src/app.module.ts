@@ -1,6 +1,7 @@
 import { Module } from "@nestjs/common";
-import { APP_FILTER } from "@nestjs/core";
+import { APP_FILTER, APP_GUARD } from "@nestjs/core";
 import { ConfigModule, ConfigService } from "@nestjs/config";
+import { ThrottlerModule, ThrottlerGuard } from "@nestjs/throttler";
 import { ErrorTrackingService } from "./common/services/error-tracking.service";
 import { ErrorTrackingFilter } from "./common/filters/error-tracking.filter";
 import { ScheduleModule } from "@nestjs/schedule";
@@ -42,6 +43,15 @@ import { InstagramAutomationModule } from "./instagram-automation/instagram-auto
       validationSchema: envValidationSchema,
       validationOptions: { abortEarly: false },
     }),
+    // Achado numa auditoria de prontidão de produção: só o FunnelModule tinha
+    // rate limiting (escopado só a ele, CA-05 do spec 046) — o resto da API
+    // inteira (signup-adjacent, criação de conteúdo, endpoints de IA que vão
+    // custar dinheiro real assim que as chaves existirem) não tinha limite
+    // nenhum. Limite global generoso (120 req/min por IP) — não deve
+    // interferir com uso legítimo (várias chamadas paralelas de uma tela só),
+    // mas barra abuso automatizado. Escopo de módulo diferente do
+    // ThrottlerModule do FunnelModule, sem conflito entre os dois.
+    ThrottlerModule.forRoot([{ name: "global", ttl: 60_000, limit: 120 }]),
     ScheduleModule.forRoot(),
     BullModule.forRootAsync({
       inject: [ConfigService],
@@ -77,6 +87,10 @@ import { InstagramAutomationModule } from "./instagram-automation/instagram-auto
     AddonsModule,
     InstagramAutomationModule,
   ],
-  providers: [ErrorTrackingService, { provide: APP_FILTER, useClass: ErrorTrackingFilter }],
+  providers: [
+    ErrorTrackingService,
+    { provide: APP_FILTER, useClass: ErrorTrackingFilter },
+    { provide: APP_GUARD, useClass: ThrottlerGuard },
+  ],
 })
 export class AppModule {}
